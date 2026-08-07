@@ -1,16 +1,82 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OOOREOOO</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        h1 { font-size: 3rem; font-weight: 300; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KPD-800T · 架空线双端局放检测报告系统</title>
+  <meta name="description" content="架空线双端局放定位仪 KPD-800T 检测报告在线生成系统">
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="icon" href="assets/img/logo.png" type="image/png">
 </head>
 <body>
-    <h1>Hello, World</h1>
+  <div id="noise"></div>
+  <div class="app">
+    <header class="appbar">
+      <div class="brand">
+        <div class="brand-mark">K</div>
+        <div class="brand-text">
+          <span class="brand-title">KPD-800T · 检测报告系统</span>
+          <span class="brand-sub">架空线双端局放定位仪 · 在线生成 · Word 导出</span>
+        </div>
+      </div>
+      <div class="appbar-meta">
+        <span class="dot"></span><span>纯静态部署 · GitHub Pages 友好</span>
+        <span class="pill" id="appPill">v2.0</span>
+      </div>
+    </header>
+    <div class="steps">
+      <div class="step is-active" id="step1"><span class="num">1</span><span>导入 Excel</span></div>
+      <div class="step-arrow"></div>
+      <div class="step" id="step2"><span class="num">2</span><span>提取数据</span></div>
+      <div class="step-arrow"></div>
+      <div class="step" id="step3"><span class="num">3</span><span>查看报告</span></div>
+      <div class="step-arrow"></div>
+      <div class="step" id="step4"><span class="num">4</span><span>编辑 / 导出 Word</span></div>
+    </div>
+    <div class="grid">
+      <div class="col" id="colLeft">
+        <section class="glass glass-unified" id="sectionImport">
+          <div class="card-head">
+            <div class="card-title"><span class="idx">1</span><div><div>数据导入与处理</div><div class="card-sub">上传 Excel → 解析字段 → 预览数据</div></div></div>
+            <div class="unified-badges"><span class="badge idle" id="badgeImport">待导入</span><span class="pill cyan" id="rowsPill">28 列</span></div>
+          </div>
+          <div class="unified-body">
+            <div class="unified-left">
+              <label class="drop" id="drop"><input type="file" id="fileInput" accept=".xlsx,.xls"><div class="drop-icon">📋</div><div class="drop-title">点击或拖拽 Excel 文件到此处</div><div class="drop-hint">支持 .xlsx / .xls · 单文件 · 最大 10MB</div></label>
+              <div class="file-info" id="fileInfo" style="display:none;"><div class="name"><span id="fileName">—</span></div><div class="actions"><button class="btn btn-ghost" id="btnClearFile">移除</button></div></div>
+            </div>
+            <div class="unified-right">
+              <div class="unified-right-title">操作面板</div>
+              <div class="btn-row vertical">
+                <button class="btn btn-primary" id="btnDownloadTpl"><span>📜 下载数据模板</span></button>
+                <button class="btn btn-violet" id="btnExtract"><span>开始提取并生成报告</span></button>
+                <button class="btn btn-ghost" id="btnLoadDemo" style="font-size:12px;">📥 加载示例数据</button>
+                <button class="btn btn-ghost" id="btnReset">↩ 重置</button>
+              </div>
+              <div class="progress" id="extractProgress"><span></span></div>
+              <div class="toast" id="extractToast"></div>
+            </div>
+          </div>
+          <div class="unified-hint"><span class="dot-c"></span>系统按真实 Excel 模板（3-Sheet）自动解析「报告基本信息」与「缺陷检测记录」，规则对齐 <code>fill_word_template.py</code> 的 COL_MAP 映射。</div>
+          <div class="unified-section step-panel" id="panelDataPreview" style="display:none;">
+            <div class="unified-section-head"><div class="unified-section-title"><span class="section-step">2</span> 提取数据预览</div><div class="unified-section-meta">每条缺陷一行 · 共 <span id="defectsCount">0</span> 条</div></div>
+            <div id="dataTable"><div class="empty-state">尚未提取数据，请上传 Excel 或 <a href="#" id="linkDownloadTpl" style="color:var(--accent-cyan);">下载数据模板</a>。</div></div>
+          </div>
+        </section>
+      </div>
+      <div class="col step-panel" id="colRight" style="display:none;">
+        <section class="glass report-card">
+          <div class="report-toolbar"><div class="meta"><span class="section-step">3-4</span><span>报告预览与导出</span><span class="pill violet" id="reportPill">等待提取</span></div><div class="btn-row"><button class="btn btn-violet" id="btnEditReport">✏ 编辑报告</button><button class="btn btn-primary" id="btnDownloadWord">📥 下载 Word</button><button class="btn btn-ghost" id="btnPrintPdf">🖨 打印 PDF</button><button class="btn btn-ghost" id="btnResetReport">↩ 重置报告</button></div></div>
+          <div class="report-frame" id="reportDoc"></div>
+        </section>
+      </div>
+    </div>
+    <div class="footer"><p><b>SYSTEM v2.0</b> · 液态玻璃风 · 纯静态部署 · 客户端 docx 生成 · KPD-800T 双端局放定位仪</p></div>
+  </div>
+  <script src="assets/js/xlsx.full.min.js"></script>
+  <script src="assets/js/docx.iife.js"></script>
+  <script src="assets/app.js"></script>
+  <script src="assets/docx-gen.js"></script>
+  <script src="assets/main.js"></script>
 </body>
 </html>
