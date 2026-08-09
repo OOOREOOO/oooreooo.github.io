@@ -1,0 +1,1828 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>发票整合 · Invoice Merger</title>
+<style>
+  :root {
+    /* 票据归档台 · 票据色系：纸白 / 油墨蓝黑 / 印刷蓝 / 印章红 / 复写纸灰 */
+    --paper: #f7f6f2;
+    --paper-2: #fbfaf7;
+    --ink: #20242c;
+    --ink-2: #5f6672;
+    --print: #2f6fa7;
+    --print-soft: rgba(47, 111, 167, 0.12);
+    --stamp: #b8422f;
+    --carbon: #e5e4de;
+    /* 兼容变量（现有 CSS 引用不变，仅换值） */
+    --blue: #2f6fa7;
+    --blue-2: #5b93c4;
+    --green: #3a7d44;
+    --orange: #b98a2f;
+    --red: #b8422f;
+    --glass-stroke: rgba(255, 255, 255, 0.75);
+    --hairline: rgba(32, 36, 44, 0.09);
+    --hairline-strong: rgba(32, 36, 44, 0.2);
+    --glass-shadow: 0 10px 34px rgba(32, 36, 44, 0.1);
+    /* 纸面 */
+    --surface: rgba(251, 250, 247, 0.72);
+    --surface-strong: rgba(251, 250, 247, 0.92);
+    --surface-row: rgba(255, 255, 255, 0.62);
+    --surface-field: rgba(255, 255, 255, 0.85);
+    --page-a: #ecebe6;
+    --page-b: #f7f6f2;
+    --page-c: #f2f1ec;
+    /* 圆角：票据稍方（不再全胶囊） */
+    --r-card: 16px;
+    --r-row: 10px;
+    --r-pill: 10px;
+    /* 字体：宋体展示（票据/印章）/ 无衬线正文 / 等宽数据（账本数字） */
+    --font-display: "Songti SC", "STSong", "SimSun", "Noto Serif SC", serif;
+    --font-mono: "SF Mono", "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC",
+      "Helvetica Neue", "Microsoft YaHei", sans-serif;
+    color: var(--ink);
+    min-height: 100vh;
+    background:
+      repeating-linear-gradient(0deg, transparent 0 39px, rgba(32, 36, 44, 0.028) 39px 40px),
+      radial-gradient(1000px 600px at 12% -8%, rgba(47, 111, 167, 0.07) 0%, transparent 55%),
+      linear-gradient(160deg, var(--page-b) 0%, var(--page-c) 100%);
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* 暗色模式：整页单主题切换（技能 6.C / 8） */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink: #eceff3;
+      --ink-2: #9aa3b0;
+      --paper: #15181d;
+      --paper-2: #1b1f26;
+      --print: #6fa8d4;
+      --print-soft: rgba(111, 168, 212, 0.16);
+      --stamp: #d97a63;
+      --carbon: #23272e;
+      --surface: rgba(27, 31, 38, 0.72);
+      --surface-strong: rgba(27, 31, 38, 0.92);
+      --surface-row: rgba(255, 255, 255, 0.05);
+      --surface-field: rgba(255, 255, 255, 0.08);
+      --glass-stroke: rgba(255, 255, 255, 0.14);
+      --hairline: rgba(255, 255, 255, 0.12);
+      --hairline-strong: rgba(255, 255, 255, 0.35);
+      --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+      --page-a: rgba(47, 111, 167, 0.16);
+      --page-b: #0f1115;
+      --page-c: #15181d;
+    }
+    body {
+      background:
+        repeating-linear-gradient(0deg, transparent 0 39px, rgba(255, 255, 255, 0.03) 39px 40px),
+        radial-gradient(1000px 600px at 12% -8%, rgba(47, 111, 167, 0.14) 0%, transparent 55%),
+        linear-gradient(160deg, var(--page-b) 0%, var(--page-c) 100%);
+    }
+    /* 类别徽章在暗色下加深底、提亮字，保持可读 */
+    .badge.solo { background: rgba(185, 138, 47, 0.18); color: #d9b26b; }
+    .badge.pair { background: rgba(58, 125, 68, 0.18); color: #7dbf8a; }
+    .badge.err { background: rgba(184, 66, 47, 0.2); color: #e08a78; }
+    .badge.cat-train { background: rgba(111, 168, 212, 0.18); color: #a8cdeb; }
+    .badge.cat-flight { background: rgba(191, 90, 242, 0.18); color: #d9a4f5; }
+    .badge.cat-itinerary { background: rgba(124, 122, 255, 0.18); color: #b9b8ff; }
+    .badge.cat-ridehail { background: rgba(58, 125, 68, 0.18); color: #8fce9c; }
+    .badge.cat-transit { background: rgba(0, 150, 145, 0.18); color: #5fd9d3; }
+    .badge.cat-hotel { background: rgba(120, 118, 255, 0.18); color: #b5b3ff; }
+    .badge.cat-meal { background: rgba(185, 138, 47, 0.18); color: #d9b26b; }
+    .badge.cat-invoice { background: rgba(174, 174, 178, 0.16); color: #d0d0d3; }
+    .badge.cat-other { background: rgba(142, 142, 147, 0.18); color: #c9c9cc; }
+    /* 大型进度条暗色适配 */
+    .prog { background: rgba(21, 24, 29, 0.74); }
+    .prog .prog-info { background: rgba(27, 31, 38, 0.92); border-color: rgba(255, 255, 255, 0.1); }
+    /* 金额印章暗色适配 */
+    .fabbar .summary .total { background: rgba(217, 122, 99, 0.1); box-shadow: inset 0 0 0 3px rgba(217, 122, 99, 0.12); }
+  }
+
+  /* 透明降级：系统偏好减少透明时，玻璃退化为实底（技能 Appendix C） */
+  @media (prefers-reduced-transparency: reduce) {
+    .glass, .fabbar, .preview-pop, .list-section-head, .file-row, .btn {
+      backdrop-filter: none; -webkit-backdrop-filter: none;
+    }
+    .glass, .fabbar, .preview-pop, .list-section-head { background: var(--surface-strong); }
+    .file-row { background: var(--surface-row); }
+  }
+
+  .wrap { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 32px 20px 130px; }
+
+  .glass {
+    background: var(--surface);
+    backdrop-filter: blur(24px) saturate(170%);
+    -webkit-backdrop-filter: blur(24px) saturate(170%);
+    border: 1px solid var(--glass-stroke);
+    border-radius: var(--r-card);
+    box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255,255,255,0.7);
+  }
+
+  header.app { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; text-align: left; flex-wrap: wrap; }
+  header.app h1 {
+    font-family: var(--font-display);
+    font-size: 30px; font-weight: 700; letter-spacing: 1px; margin: 0 0 6px;
+  }
+  header.app p { margin: 0; color: var(--ink-2); font-size: 13.5px; max-width: 560px; line-height: 1.6; }
+  /* 归档日期戳（印章）：签名元素的呼应，宋体 + 红描边方章 */
+  header.app .head-stamp {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 14px;
+    border: 1.5px solid var(--stamp);
+    border-radius: 8px;
+    color: var(--stamp);
+    font-family: var(--font-display);
+    font-size: 13px; font-weight: 700; letter-spacing: 1px;
+    background: rgba(184, 66, 47, 0.05);
+    box-shadow: inset 0 0 0 3px rgba(184, 66, 47, 0.08);
+    user-select: none;
+  }
+  header.app .head-stamp svg { width: 15px; height: 15px; flex: none; }
+
+  .card { padding: 22px; margin-bottom: 18px; }
+
+  /* 单列垂直：拖拽 / 时间线 / 列表 / 预览 */
+
+  /* 悬浮操作栏：合并 / 清空 始终显示 */
+  .fabbar {
+    position: fixed; left: 50%; transform: translateX(-50%);
+    bottom: 20px; z-index: 45;
+    display: flex; align-items: stretch; gap: 0;
+    padding: 6px; border-radius: var(--r-card);
+    background: var(--surface-strong);
+    backdrop-filter: blur(22px) saturate(170%);
+    -webkit-backdrop-filter: blur(22px) saturate(170%);
+    border: 1px solid var(--glass-stroke);
+    box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255,255,255,0.7);
+    max-width: calc(100vw - 24px);
+  }
+  .fabbar .actions { display: flex; gap: 6px; align-items: center; padding: 4px; }
+  .fabbar .actions-sep { width: 1px; height: 22px; background: var(--hairline); margin: 0 4px; }
+  .fabbar .summary {
+    display: flex; flex-direction: column; justify-content: center; gap: 4px;
+    padding: 10px 18px; min-width: 320px;
+    border-left: 1px solid var(--hairline);
+    text-align: left; line-height: 1.35;
+    color: var(--ink-2); font-size: 13px;
+  }
+  .fabbar .summary .row { font-size: 12.5px; color: var(--ink-2); }
+  .fabbar .summary .row b { color: var(--ink); font-weight: 700; margin: 0 2px; }
+  .fabbar .summary .row .sep { display: inline-block; margin: 0 4px; color: var(--ink-2); opacity: .55; }
+  /* 签名元素：发票金额印章 —— 红描边方章，等宽小写 + 宋体大写，像票据上的收讫章 */
+  .fabbar .summary .total {
+    display: inline-flex; align-items: baseline; gap: 9px;
+    margin-top: 5px; padding: 7px 14px;
+    border: 1.5px solid var(--stamp); border-radius: 7px;
+    background: rgba(184, 66, 47, 0.05);
+    box-shadow: inset 0 0 0 3px rgba(184, 66, 47, 0.07);
+    color: var(--stamp);
+    font-family: var(--font-mono);
+    font-size: 16px; font-weight: 700; letter-spacing: 0.5px;
+    font-variant-numeric: tabular-nums;
+  }
+  .fabbar .summary .total .upper {
+    font-family: var(--font-display);
+    font-size: 12.5px; font-weight: 700; letter-spacing: 1.5px;
+    color: var(--stamp);
+  }
+  .fabbar .summary .warn { font-size: 12px; color: var(--red); margin-top: 2px; display: flex; align-items: center; gap: 4px; }
+  .fabbar .summary .warn svg { width: 13px; height: 13px; flex: none; }
+  .fabbar .summary-empty { color: var(--ink-2); font-size: 13px; padding: 4px 0; }
+  .fabbar .btn { padding: 12px 22px; }
+
+  /* 时间线 + 文件信息 上下堆叠：文件信息在上（order 1），网约车时间线在下（order 2） */
+  .stack-col { display: flex; flex-direction: column; gap: 18px; }
+  .stack-col #fileInfoCard { order: 1; }
+  .stack-col #timelineCard { order: 2; }
+
+  /* 默认隐藏：未导入文件前不显示这些卡片/操作栏；导入后由 JS 移除 */
+  .hidden { display: none !important; }
+
+  /* 行程时间线：按日期聚合 */
+  /* 拖入框：票据虚线框（像待归档票据的撕边），圆角方章形态 */
+  .drop {
+    position: relative;
+    border: 1.5px dashed rgba(47, 111, 167, 0.5);
+    border-radius: var(--r-card);
+    padding: 38px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform .2s ease, background .2s ease, border-color .2s ease;
+    background: var(--surface-row);
+  }
+  .drop:hover { transform: translateY(-2px); background: var(--surface-strong); }
+  .drop.drag { border-color: var(--print); background: var(--print-soft); transform: scale(1.01); }
+  .drop .icon { font-size: 40px; display: grid; place-items: center; color: var(--print); }
+  .drop .icon svg { width: 46px; height: 46px; }
+  .drop h3 { margin: 10px 0 4px; font-size: 17px; }
+  .drop span { color: var(--ink-2); font-size: 13px; }
+  .drop .btns { margin-top: 16px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  /* 「待归档」角标：票据签收标记 */
+  .drop .drop-tag {
+    position: absolute; top: -1px; right: 14px;
+    font-family: var(--font-display);
+    font-size: 11px; font-weight: 700; letter-spacing: 2px;
+    color: var(--ink-2);
+    padding: 3px 10px;
+    background: var(--surface-strong);
+    border: 1px solid var(--hairline);
+    border-radius: 0 0 6px 6px;
+  }
+  .drop.busy .btns { display: none; }
+  .drop.busy h3, .drop.busy .icon, .drop.busy > span, .drop.busy .drop-tag { visibility: hidden; }
+  .drop.busy { min-height: 120px; display: flex; flex-direction: column; justify-content: center; }
+  /* 大型进度条：覆盖整个拖入卡片，渐变色块从左向右灵动覆盖传播 */
+  .drop-card { position: relative; overflow: hidden; }
+  .prog {
+    position: absolute; inset: 0; z-index: 6;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.72);
+    backdrop-filter: blur(10px) saturate(150%);
+    -webkit-backdrop-filter: blur(10px) saturate(150%);
+    opacity: 0; pointer-events: none;
+    transition: opacity .35s ease;
+  }
+  .prog.show { opacity: 1; }
+  /* 大型渐变填充：从左向右覆盖传播（背景 200% 宽 + 平移，营造色块流动） */
+  .prog .fill {
+    position: absolute; left: 0; top: 0; bottom: 0; width: 0%;
+    background: linear-gradient(90deg, #2f6fa7 0%, #4a88bd 35%, #8fb8d8 60%, #5b93c4 100%);
+    background-size: 200% 100%;
+    animation: progFlow 2.4s linear infinite;
+    transition: width .4s cubic-bezier(.4, 0, .2, 1);
+    box-shadow: 0 0 26px rgba(75, 136, 189, 0.5);
+  }
+  /* 高光条纹灵动扫过 */
+  .prog .fill::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(105deg, transparent 32%, rgba(255,255,255,0.6) 50%, transparent 68%);
+    background-size: 260% 100%;
+    animation: progSheen 1.7s ease-in-out infinite;
+  }
+  @keyframes progFlow { 0% { background-position: 0% 0; } 100% { background-position: 200% 0; } }
+  @keyframes progSheen { 0% { background-position: 130% 0; } 100% { background-position: -130% 0; } }
+  /* 中央信息：大号百分比 + 当前文件名（白色胶囊底衬保证在渐变上可读） */
+  .prog .prog-info {
+    position: relative; z-index: 2;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    padding: 12px 34px;
+    background: rgba(255,255,255,0.9);
+    border: 1px solid rgba(255,255,255,0.8);
+    border-radius: 22px;
+    box-shadow: 0 6px 24px rgba(47,111,167,0.16);
+    max-width: 86%;
+  }
+  .prog .prog-info .pct {
+    font-size: 44px; font-weight: 800; color: var(--ink);
+    font-variant-numeric: tabular-nums; letter-spacing: 0.5px; line-height: 1.1;
+  }
+  .prog .prog-info .name {
+    font-size: 13px; color: var(--ink-2);
+    max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .prog .fill, .prog .fill::after { animation: none; }
+  }
+
+  .btn {
+    appearance: none; border: 1px solid var(--glass-stroke);
+    background: var(--surface-row);
+    color: var(--ink); font-size: 14px; font-weight: 600;
+    padding: 10px 20px; border-radius: var(--r-pill); cursor: pointer;
+    transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(47,111,167,0.18); }
+  .btn:active { transform: translateY(0) scale(0.97); } /* 物理按压反馈（技能 4.5） */
+  .btn.primary {
+    background: linear-gradient(135deg, var(--blue) 0%, var(--blue-2) 100%);
+    color: #fff; border-color: transparent;
+    box-shadow: 0 8px 22px rgba(47,111,167,0.35);
+  }
+  .btn.primary:active { box-shadow: 0 3px 10px rgba(47,111,167,0.3); }
+  .btn.ghost { background: var(--surface-row); }
+  .btn.icon-btn { padding: 7px; border-radius: var(--r-pill); display: inline-grid; place-items: center; line-height: 0; }
+  .btn.icon-btn svg { width: 14px; height: 14px; }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  /* 行程时间线 */
+  .timeline-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .timeline-head h3 { margin: 0; font-size: 16px; font-family: var(--font-display); letter-spacing: 1px; }
+  .timeline-head .count { color: var(--ink-2); font-size: 13px; }
+  .timeline { overflow: auto; max-height: 420px; padding: 2px 4px 4px 0; }
+  .timeline::-webkit-scrollbar { width: 8px; height: 8px; }
+  .timeline::-webkit-scrollbar-thumb { background: rgba(47,111,167,0.25); border-radius: 8px; }
+  .tl-empty { text-align: center; color: var(--ink-2); font-size: 13px; padding: 24px 0; }
+  .tl-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12.5px; table-layout: fixed; }
+  .tl-table th, .tl-table td { padding: 8px 8px; text-align: left; border-bottom: 1px solid var(--hairline); overflow-wrap: break-word; }
+  .tl-table th {
+    font-weight: 600; color: var(--ink-2); font-size: 11px; letter-spacing: 0.6px;
+    background: var(--surface-row); position: sticky; top: 0; z-index: 1;
+    border-bottom: 1.5px solid var(--hairline-strong);
+    font-variant-numeric: tabular-nums;
+  }
+  .tl-table tr:last-child td { border-bottom: none; }
+  .tl-table tr:hover td { background: var(--print-soft); }
+  /* 账页数字：等宽字体，金额/里程/时间右对齐，账本感 */
+  .tl-table td { font-variant-numeric: tabular-nums; }
+  .tl-table td:nth-child(6), .tl-table td:nth-child(7),
+  .tl-table td:nth-child(2), .tl-table td:nth-child(3) {
+    font-family: var(--font-mono);
+  }
+  /* 列宽均衡：colgroup + table-layout:fixed，行程列 auto 占剩余空间 */
+  .tl-table col.c-num { width: 40px; }
+  .tl-table col.c-car { width: 90px; }
+  .tl-table col.c-time { width: 118px; }
+  .tl-table col.c-city { width: 70px; }
+  .tl-table col.c-route { width: auto; }
+  .tl-table col.c-km { width: 84px; }
+  .tl-table col.c-amt { width: 92px; }
+  /* 列样式（非宽度，由 colgroup 控制宽度） */
+  .tl-table th:nth-child(1), .tl-table td:nth-child(1) { text-align: center; color: var(--ink-2); }
+  .tl-table th:nth-child(2), .tl-table td:nth-child(2) { white-space: nowrap; }
+  .tl-table th:nth-child(3), .tl-table td:nth-child(3) { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .tl-table th:nth-child(4), .tl-table td:nth-child(4) { white-space: nowrap; }
+  .tl-table td:nth-child(6), .tl-table td:nth-child(7),
+  .tl-table th:nth-child(6), .tl-table th:nth-child(7) {
+    text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  /* 行程列：起点 / 终点合并，垂直堆叠，中间以 → 连接 */
+  .tl-table td.route { padding: 6px 8px; }
+  .tl-table td.route .route-from,
+  .tl-table td.route .route-to {
+    line-height: 1.35;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden; word-break: break-word;
+    font-family: var(--font-mono); /* 地址也用等宽，更账本感 */
+    color: var(--ink);
+  }
+  .tl-table td.route .route-from { color: var(--ink-2); }
+  .tl-table td.route .route-arrow {
+    font-family: var(--font-mono);
+    color: var(--ink-2); opacity: .55;
+    line-height: 1; padding: 2px 0;
+    font-size: 12px;
+  }
+  .tl-table td:nth-child(6), .tl-table td:nth-child(7),
+  .tl-table th:nth-child(6), .tl-table th:nth-child(7) {
+    text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+
+  .list-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .list-head h3 { margin: 0; font-size: 16px; font-family: var(--font-display); letter-spacing: 1px; }
+  .list-head .count { color: var(--ink-2); font-size: 13px; }
+
+  .file-list { display: flex; flex-direction: column; gap: 6px; max-height: 420px; overflow-y: auto; padding-right: 4px; }
+  .file-list::-webkit-scrollbar { width: 8px; }
+  .file-list::-webkit-scrollbar-thumb { background: rgba(47,111,167,0.25); border-radius: 8px; }
+
+  /* 分区（发票 / 行程单 / 其他） */
+  .list-section { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+  .list-section:last-child { margin-bottom: 0; }
+  .list-section-head {
+    position: sticky; top: 0; z-index: 3;
+    display: flex; align-items: baseline; justify-content: space-between;
+    padding: 7px 12px; margin: 2px 0 6px;
+    border-radius: var(--r-row);
+    background: var(--surface-strong);
+    backdrop-filter: blur(14px) saturate(180%);
+    -webkit-backdrop-filter: blur(14px) saturate(180%);
+    border: 1px solid var(--glass-stroke);
+    box-shadow: 0 2px 10px rgba(47,111,167,0.06);
+    cursor: pointer; user-select: none;
+    transition: background .15s ease, box-shadow .15s ease;
+  }
+  .list-section-head:hover { background: var(--surface-strong); box-shadow: 0 4px 16px rgba(47,111,167,0.12); }
+  .list-section-head .title { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 6px; font-family: var(--font-display); letter-spacing: 1px; }
+  .list-section-head .title .ic { font-size: 16px; }
+  .list-section-head .title .caret {
+    display: inline-flex; opacity: .5;
+    transition: transform .2s ease; transform: rotate(0deg);
+  }
+  .list-section-head .title .caret svg { width: 14px; height: 14px; }
+  .list-section.collapsed .list-section-head .title .caret { transform: rotate(-90deg); }
+  .list-section.collapsed > .list-section-body { display: none; }
+  .list-section-head .meta { font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .list-section-head .meta b { color: var(--ink); font-weight: 700; }
+  .list-section-body { display: flex; flex-direction: column; gap: 10px; }
+
+  .file-row {
+    display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: var(--r-row);
+    background: var(--surface-row); border: 1px solid var(--glass-stroke);
+    /* 骑缝线：左侧竖线，像票据归档页的装订边 */
+    border-left: 3px solid var(--carbon);
+    transition: transform .18s ease, box-shadow .18s ease, background .18s ease, border-left-color .18s ease;
+  }
+  .file-row:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(47,111,167,0.1); background: var(--surface-strong); border-left-color: var(--print); }
+  .file-row .name { flex: 1; min-width: 0; }
+  .file-row .name .n { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .file-row .meta { font-size: 12px; color: var(--ink-2); margin-top: 3px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .file-row .meta .amt { color: var(--ink); font-weight: 600; }
+  .file-row .meta .meta-date {
+    font-family: var(--font-mono);
+    font-size: 11px; font-weight: 600; color: var(--ink-2);
+    border: 1px solid var(--hairline-strong); border-radius: 4px;
+    padding: 1px 6px;
+    font-variant-numeric: tabular-nums; letter-spacing: 0.3px;
+  }
+  /* 印章式标签：宋体 + 单色描边（像票据盖章），currentColor 自动适配暗色 */
+  .badge {
+    font-family: var(--font-display);
+    font-size: 11px; font-weight: 700; letter-spacing: 1px;
+    padding: 2px 9px; border-radius: 5px;
+    border: 1.5px solid currentColor;
+    background: transparent;
+  }
+  .badge.solo { color: #9a7420; }
+  .badge.pair { color: #2f6d3b; }
+  .badge.err { color: #b8422f; }
+  /* 发票类别徽章 */
+  .badge.cat-train { color: #2f6fa7; }
+  .badge.cat-flight { color: #8944ab; }
+  .badge.cat-itinerary { color: #5b58d6; }
+  .badge.cat-ridehail { color: #2f6d3b; }
+  .badge.cat-transit { color: #007a76; }
+  .badge.cat-hotel { color: #5b58d6; }
+  .badge.cat-meal { color: #9a7420; }
+  .badge.cat-invoice { color: #4b4b50; }
+  .badge.cat-other { color: #636366; }
+    .file-row .meta .meta-date { background: rgba(124, 122, 255, 0.22); color: #c8c7ff; }
+
+  /* 悬浮预览小窗 */
+  .preview-pop {
+    position: fixed; z-index: 60; pointer-events: none;
+    width: 260px; padding: 10px; border-radius: var(--r-row);
+    background: var(--surface-strong);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid var(--glass-stroke);
+    box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255,255,255,0.8);
+    opacity: 0; transform: translateY(8px); transition: opacity .2s ease, transform .2s ease;
+  }
+  .preview-pop.show { opacity: 1; transform: translateY(0); }
+  .preview-pop img { width: 100%; height: auto; border-radius: var(--r-row); display: block; background: #fff; }
+  .preview-pop .tip { font-size: 11px; color: var(--ink-2); text-align: center; margin-top: 6px; }
+
+  /* 开关 */
+  .switch { position: relative; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
+  .switch .lab { font-size: 12px; color: var(--ink-2); }
+  .switch input { display: none; }
+  .switch .track { width: 42px; height: 25px; border-radius: var(--r-pill); background: rgba(120,120,128,0.3); transition: background .2s ease; position: relative; }
+  .switch .track::after { content: ""; position: absolute; top: 3px; left: 3px; width: 19px; height: 19px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.3); transition: transform .2s ease; }
+  .switch:active .track::after { transform: scale(0.9); }
+  .switch input:checked + .track { background: var(--blue); }
+  .switch input:checked + .track::after { transform: translateX(17px); }
+  .switch input:checked:active + .track::after { transform: translateX(17px) scale(0.9); }
+
+  .row-check { width: 20px; height: 20px; border-radius: 7px; border: 1.5px solid var(--hairline-strong); background: var(--surface-field); cursor: pointer; display: grid; place-items: center; flex: none; transition: background .15s ease, border-color .15s ease, transform .15s ease; }
+  .row-check:active { transform: scale(0.88); }
+  .row-check.on { background: var(--blue); border-color: var(--blue); }
+  .row-check.on::after { content: ""; width: 10px; height: 6px; border-left: 2px solid #fff; border-bottom: 2px solid #fff; transform: rotate(-45deg) translateY(-1px); }
+
+  .empty {
+    text-align: center; color: var(--ink-2); font-size: 13px;
+    padding: 44px 20px; display: flex; flex-direction: column; align-items: center; gap: 10px;
+  }
+  .empty svg { width: 42px; height: 42px; opacity: .45; }
+  .empty b { color: var(--ink); font-weight: 600; font-size: 14px; }
+
+  .actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .summary { font-size: 13px; color: var(--ink-2); margin-left: auto; text-align: right; line-height: 1.5; }
+
+  .result { margin-top: 4px; }
+  .result iframe { width: 100%; height: 520px; border: none; border-radius: var(--r-row); background: var(--surface-field); }
+
+  /* 入场动画（技能 5.C 轻量级，仅 transform/opacity） */
+  .card, .fabbar { animation: rise .5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .card:nth-child(1) { animation-delay: .03s; }
+  .card:nth-child(2) { animation-delay: .08s; }
+  .list-section-body .file-row { animation: rise .4s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: calc(var(--idx, 0) * 20ms); }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .card, .fabbar, .list-section-body .file-row { animation: none; }
+    * { transition-duration: .01ms !important; }
+  }
+
+  .toast {
+    position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: rgba(28,28,30,0.86); color: #fff; padding: 12px 20px; border-radius: 14px;
+    font-size: 14px; opacity: 0; pointer-events: none; transition: all .3s ease; z-index: 50; backdrop-filter: blur(10px);
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  @media (max-width: 640px) {
+    header.app h1 { font-size: 24px; }
+    .file-row .meta { font-size: 11px; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="app">
+      <div class="head-main">
+        <h1>发票归档</h1>
+        <p>将文件夹里的 PDF（发票、行程单等）合并为 A4 打印册；火车票自动加印、小票两联拼版，并识别金额与网约车行程。</p>
+      </div>
+      <div class="head-stamp" id="headStamp" title="归档日期">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l6 6-6 6M5 12h9"/></svg>
+        <span class="hs-text" id="headStampText">归档 · ——</span>
+      </div>
+    </header>
+
+    <!-- 单列布局：拖拽；下方两栏：时间线（左）+ 文件信息（右） -->
+    <div class="glass card drop-card" id="dropCard">
+      <div class="drop" id="drop">
+        <div class="drop-tag">待归档</div>
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M5 3v18l2-1.5 2 1.5 2-1.5 2 1.5 2-1.5 2 1.5V3l-2 1.5-2-1.5-2 1.5L9 3 7 4.5 5 3z"/>
+            <path d="M8 8h8M8 12h8M8 16h5"/>
+          </svg>
+        </div>
+        <h3>拖入文件夹或 PDF</h3>
+        <span>支持整个文件夹（含子目录）批量提取 PDF；图片等非 PDF 会被忽略；自动扫描票面二维码识别发票与金额</span>
+        <div class="btns">
+          <button class="btn" id="pickFolder">选择文件夹</button>
+          <button class="btn" id="pickFiles">选择 PDF 文件</button>
+        </div>
+      </div>
+      <!-- 大型进度条：覆盖整个拖入卡片，渐变从左向右灵动传播 -->
+      <div class="prog" id="prog">
+        <div class="fill" id="progFill"></div>
+        <div class="prog-info">
+          <b class="pct" id="progPct">0%</b>
+          <div class="name" id="progName">正在读取…</div>
+        </div>
+      </div>
+      <input type="file" id="folderInput" webkitdirectory directory multiple style="display:none" />
+      <input type="file" id="fileInput" accept="application/pdf,.pdf" multiple style="display:none" />
+    </div>
+
+    <div class="stack-col">
+      <!-- 行程时间线（仅识别行程单归类中的行程，按日期排序） -->
+      <div class="glass card hidden" id="timelineCard">
+        <div class="timeline-head">
+          <h3>网约车时间线</h3>
+          <span class="count" id="timelineCount">0 段行程</span>
+        </div>
+        <div class="timeline" id="timeline">
+          <div class="tl-empty">导入行程单后，按行程逐条展示</div>
+        </div>
+      </div>
+
+      <!-- 文件信息 -->
+      <div class="glass card hidden" id="fileInfoCard">
+        <div class="list-head">
+          <h3>文件信息</h3>
+          <span class="count" id="count">0 个 PDF</span>
+        </div>
+        <div class="file-list" id="list">
+          <div class="empty" id="empty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 13l2.5-6.5A2 2 0 0 1 8.3 5h7.4a2 2 0 0 1 1.8 1.5L20 13"/>
+              <path d="M4 13v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/>
+              <path d="M4 13h4l2 2h4l2-2h4"/>
+            </svg>
+            <div><b>还没有票据</b></div>
+            <span>将发票文件夹拖入上方，或点击「选择文件夹」批量导入。</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="glass card result" id="resultCard" style="display:none;">
+      <div class="list-head">
+        <h3>合并预览</h3>
+        <button class="btn" id="download">下载 PDF</button>
+      </div>
+      <iframe id="preview"></iframe>
+    </div>
+  </div>
+
+  <!-- 悬浮操作栏：合并 / 清空 + 汇总；未导入时默认隐藏 -->
+  <div class="fabbar hidden" id="fabbar">
+    <div class="actions">
+      <button class="btn primary" id="generate" disabled>生成合并 PDF</button>
+      <button class="btn ghost" id="clear" disabled>清空</button>
+    </div>
+    <div class="summary" id="summary">
+      <div class="summary-empty">还没有可合并的文件</div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <!-- 发票悬浮预览 -->
+  <div class="preview-pop" id="previewPop">
+    <img id="previewImg" src="" alt="发票预览" />
+    <div class="tip" id="previewTip">正在生成预览…</div>
+  </div>
+
+  <script src="./pdf-lib.min.js"></script>
+  <script src="./pdf.min.js"></script>
+  <script src="./jsqr.min.js"></script>
+  <script src="./merge-core.js"></script>
+  <script>
+    const PT_PER_CM = 28.3464567;
+    const { PDFDocument } = PDFLib;
+    if (window.pdfjsLib) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = './pdf.worker.min.js';
+    }
+
+    // 归档日期戳（header 印章）：显示当前日期
+    (function initStamp() {
+      const el = document.getElementById('headStampText');
+      if (!el) return;
+      const d = new Date();
+      const pad = (n) => String(n).padStart(2, '0');
+      el.textContent = `归档 · ${d.getFullYear()}.${pad(d.getMonth() + 1)}.${pad(d.getDate())}`;
+    })();
+
+    let files = [];          // { id, name, bytes, w, h, pages, train, text, content, analyzeError, include, error }
+    const trainOverride = {}; // name -> bool（用户手动修正）
+    const thumbCache = {};    // id -> dataURL（发票缩略图缓存）
+
+    // 火车票识别默认关键词（设置面板已去除，使用内置关键词）
+    const DEFAULT_TRAIN_KWS = ['火车票','车次','席别','检票口','铁路客票','铁路电子客票','高铁票','动车','铁路','12306','中铁'];
+    function parseKws() { return DEFAULT_TRAIN_KWS; }
+    // 按票面文字内容识别火车票（不再依赖文件名）
+    function detectTrainByText(text, kws) {
+      const raw = text || '';
+      // 清洗：去掉空白、括号、常见分隔符，防止“铁路电子客票”因格式问题无法命中
+      const clean = raw.replace(/\s/g, '').replace(/[（）()【】\[\]「」]/g, '');
+      // 前置排除：航空行程单/登机牌含“航空、航班、登机”等字样，即使含“电子客票”也不是火车票
+      const isAviation = /航空|航班|登机|boarding|民航|承运人|客票及行李/.test(raw) || /航空|航班|登机|民航|承运人/.test(clean);
+      const isRail = /铁路|高铁|动车|火车|城际|12306|中铁|高铁票/.test(raw) || /铁路|高铁|动车|火车|城际|12306|中铁/.test(clean);
+      if (isAviation && !isRail) return false;
+      // 1) 直接关键词匹配
+      if (kws.some(k => raw.includes(k) || clean.includes(k))) return true;
+      // 2) 组合兜底：铁路/12306/中铁 与 客票/车次/座/票价/站 同现
+      const railSignals = ['铁路', '12306', '中铁'];
+      const ticketSignals = ['客票', '车票', '电子客票', '车次', '座', '票价', '检票口', '站'];
+      const hasRail = railSignals.some(s => raw.includes(s) || clean.includes(s));
+      const hasTicket = ticketSignals.some(s => raw.includes(s) || clean.includes(s));
+      return hasRail && hasTicket;
+    }
+    // 兜底：极少数无法提取文字时，才退回到文件名关键字
+    function fallbackDetect(name) {
+      const kws = parseKws().map(k => k.toLowerCase());
+      const lower = (name || '').toLowerCase();
+      return kws.some(k => lower.includes(k));
+    }
+
+    // 识别单据类别（优先级从高到低）：
+    // 航空行程单 > 火车票 > 机票 > 网约车 > 公共交通 > 行程单(通用) > 住宿 > 餐饮 > 通用发票 > 其他
+    function classifyInvoice(text) {
+      const t = (text || '').replace(/\s/g, '');
+      const lower = t.toLowerCase();
+
+      // 1) 航空行程单（强特征：航空运输电子客票行程单 / 客票及行李票 / itinerary），即使不是发票也要识别
+      if (/航空运输电子客票行程单|航空.{0,8}行程单|客票及行李票|itinerary/.test(t + lower)) return 'itinerary';
+
+      // 2) 火车票（铁路电子客票 / 高铁 / 动车；先排除航空特征，见 detectTrainByText）
+      if (detectTrainByText(text, parseKws())) return 'train';
+
+      // 3) 机票（航空客票 / 登机牌 / 机票购买发票）
+      if (/机票|航空运输电子客票|航空客票|登机牌|boarding\s*pass|航班|承运人|airline|flight|航程|起飞|到达|机建|燃油附加/.test(t + lower)) return 'flight';
+
+      // 4) 网约车 / 出租车（滴滴、T3、曹操等出行平台；发票里常含"行程单"字样，必须先于通用行程单判断）
+      if (/网约车|滴滴|花小猪|曹操出行|t3出行|如祺出行|首汽约车|哈啰出行|高德打车|美团打车|出租车|打的|的士|打车|taxi|uber|didi|出行服务/.test(t + lower)) return 'ridehail';
+
+      // 5) 公共交通（地铁 / 公交 / 轨道交通）
+      if (/公共交通|地铁|公交|轨道交通|有轨电车|轮渡|摆渡|transit|metro|subway|bus|citytransport/.test(t + lower)) return 'transit';
+
+      // 6) 通用行程单（此时已排除网约车/交通类，出现的"行程单"多为报销凭证），即使不是发票也要识别
+      if (/行程单|行程信息|报销凭证|journey/.test(t + lower)) return 'itinerary';
+
+      // 7) 住宿 / 酒店
+      if (/住宿|酒店|宾馆|旅店|旅馆|客房|hotel|accommodation/.test(t + lower)) return 'hotel';
+
+      // 8) 餐饮
+      if (/餐饮|餐费|餐厅|饭店|酒楼|食品|酒水|宴会|catering|restaurant|外卖/.test(t + lower)) return 'meal';
+
+      // 9) 通用发票
+      if (/发票|增值税|电子发票|全电发票|数电发票|机动车.*票|通行费|电子普通发票|专用发票/.test(t)) return 'invoice';
+
+      return 'other';
+    }
+
+    // 从票面文字提取金额：小写（数值）+ 大写（中文）。发票/火车票通用。
+    function parseAmount(text) {
+      const t = text || '';
+      const cleaned = t.replace(/\s/g, '');
+      // 合理金额范围：0.01 ~ 1亿元。超过此范围的数字一律视为发票号/流水号等非金额。
+      const push = (raw) => {
+        if (!raw) return;
+        const v = parseFloat(raw.replace(/,/g, ''));
+        if (isNaN(v) || v < 0.01 || v > 99999999.99) return;
+        candidates.push(v);
+      };
+      const candidates = [];
+      // 支持千分位逗号 + 限定整数位 1-8、小数 1-2 位。避免把 20 位发票号当成金额。
+      const numFmt = '(\\d{1,3}(?:,\\d{3})+(?:\\.\\d{1,2})?|\\d{1,8}(?:\\.\\d{1,2})?)';
+      // 1) 直接的 ¥xxx
+      [...cleaned.matchAll(new RegExp('[¥￥]\\s?' + numFmt, 'g'))].forEach(m => push(m[1]));
+      // 2) 带标签的数字：在标签后 8 个字符窗口内查找第一个合理金额（不锚定开头，允许 ": 888.00" 这种带冒号空格的情形）
+      const labelRe = /(?:价税合计|价税|金额|合计|总计|总额|票价|应收|应付|实付|小写|人民币|RMB)/g;
+      let labelMatch;
+      while ((labelMatch = labelRe.exec(cleaned)) !== null) {
+        const start = labelMatch.index + labelMatch[0].length;
+        const rest = cleaned.slice(start, start + 8);
+        const numMatch = rest.match(new RegExp(numFmt));
+        if (numMatch) push(numMatch[1]);
+      }
+      // 取最大（去重），仍可能多张发票
+      const uniq = [...new Set(candidates)];
+      let amount = uniq.length ? Math.max(...uniq) : null;
+
+      // 大写金额：先找紧跟"大写/人民币"后的中文金额串；否则从全文中提取最长中文金额串
+      let upper = '';
+      const u1 = cleaned.match(/(?:大写|人民币)[^零壹贰叁肆伍陆柒捌玖拾佰仟万亿圆元整角分]{0,30}([零壹贰叁肆伍陆柒捌玖拾佰仟万亿圆元整角分]+)/);
+      if (u1) upper = u1[1];
+      else {
+        // 放宽到 2+ 字（兼容 "壹元整"、"贰拾元" 这类短金额串）
+        const u2 = cleaned.match(/([零壹贰叁肆伍陆柒捌玖拾佰仟万亿圆元整角分]{2,})/);
+        if (u2) upper = u2[1];
+      }
+
+      // 没有小写时，尝试从大写反推
+      if (amount == null && upper) {
+        const fromUpper = parseChineseAmount(upper);
+        if (fromUpper != null && fromUpper >= 0.01 && fromUpper <= 99999999.99) amount = fromUpper;
+      }
+
+      return { amount, upper };
+    }
+
+    // 中文大写金额 → 数字（支持常见发票大写格式）
+    function parseChineseAmount(str) {
+      if (!str) return null;
+      const t = str.replace(/\s/g, '').replace(/圆/g, '元');
+      const digits = { '零':0,'壹':1,'贰':2,'叁':3,'肆':4,'伍':5,'陆':6,'柒':7,'捌':8,'玖':9 };
+      let total = 0, section = 0, currentDigit = 0, hasNum = false;
+      for (let i = 0; i < t.length; i++) {
+        const ch = t[i];
+        if (digits[ch] !== undefined) {
+          currentDigit = digits[ch];
+          hasNum = true;
+        } else if (ch === '拾') {
+          section += (currentDigit || 1) * 10; currentDigit = 0;
+        } else if (ch === '佰') {
+          section += (currentDigit || 1) * 100; currentDigit = 0;
+        } else if (ch === '仟') {
+          section += (currentDigit || 1) * 1000; currentDigit = 0;
+        } else if (ch === '万') {
+          total += (section + currentDigit) * 10000; section = 0; currentDigit = 0;
+        } else if (ch === '亿') {
+          total += (section + currentDigit) * 100000000; section = 0; currentDigit = 0;
+        } else if (ch === '元') {
+          total += section + currentDigit; section = 0; currentDigit = 0;
+        } else if (ch === '角') {
+          total += currentDigit * 0.1; currentDigit = 0;
+        } else if (ch === '分') {
+          total += currentDigit * 0.01; currentDigit = 0;
+        } else if (ch === '整') {
+          // 整 = 整元结尾，忽略
+        }
+      }
+      // 末尾若还有未结算的数字（如"壹元"中的"壹"），补回
+      total += section + currentDigit;
+      return hasNum ? Math.round(total * 100) / 100 : null;
+    }
+
+    // 数字 → 中文大写金额（如 1234.56 → 壹仟贰佰叁拾肆元伍角陆分）
+    function numToChinese(money) {
+      if (money == null || isNaN(money)) return '';
+      const neg = money < 0;
+      money = Math.abs(Math.round(money * 100) / 100);
+      const digits = ['零', '壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖'];
+      const intUnits = ['', '拾', '佰', '仟'];
+      const groupUnits = ['', '万', '亿', '兆'];
+      const [intStr, decStr = '00'] = money.toFixed(2).split('.');
+      let result = '';
+      if (parseInt(intStr, 10) !== 0) {
+        const groups = [];
+        let s = intStr;
+        while (s.length > 4) { groups.unshift(s.slice(-4)); s = s.slice(0, -4); }
+        groups.unshift(s);
+        for (let i = 0; i < groups.length; i++) {
+          const g = groups[i];
+          let gStr = ''; let hasZero = false;
+          for (let j = 0; j < g.length; j++) {
+            const d = +g[j]; const u = intUnits[g.length - 1 - j];
+            if (d === 0) { hasZero = true; }
+            else { if (hasZero && gStr !== '') gStr += '零'; gStr += digits[d] + u; hasZero = false; }
+          }
+          if (gStr !== '') result += gStr + groupUnits[groups.length - 1 - i];
+          else if (i < groups.length - 1 && result !== '' && !result.endsWith('零')) result += '零';
+        }
+        result += '元';
+      }
+      const jiao = +decStr[0], fen = +decStr[1];
+      if (jiao === 0 && fen === 0) {
+        result += (result === '' ? '零元' : '') + '整';
+      } else {
+        if (parseInt(intStr, 10) > 0) result += '元';
+        if (jiao > 0) result += digits[jiao] + '角';
+        else if (fen > 0 && parseInt(intStr, 10) > 0) result += '零';
+        if (fen > 0) result += digits[fen] + '分';
+      }
+      return (neg ? '负' : '') + result;
+    }
+
+    let lastBlobUrl = null;
+    let idSeq = 0;
+
+    const $ = (s) => document.querySelector(s);
+    const listEl = $('#list');
+    const emptyEl = $('#empty');
+
+    function toast(msg) {
+      const t = $('#toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      clearTimeout(t._t);
+      t._t = setTimeout(() => t.classList.remove('show'), 2200);
+    }
+
+    // 分析 PDF：同时提取票面文字（火车票识别）与每页「实际内容包围盒」（去掉四周空白，
+    // 用于判断小发票）。bytes 会被 pdf.js 转移，这里传副本。
+    async function analyzePdf(bytes) {
+      if (!window.pdfjsLib) return { text: '', content: null };
+      try {
+        // 关键：CJK 字体（如 DengXian）需 CMap 才能解码文字；
+        // 不设 cMapUrl 时此类 PDF 提取文字失败（火车票/类别/金额全部丢失）。
+        const doc = await pdfjsLib.getDocument({
+          data: bytes.slice(),
+          cMapUrl: './cmaps/',
+          cMapPacked: true,
+        }).promise;
+        let text = '';
+        const content = [];
+        const cells = [];   // 扁平文本项（带 y/x 坐标，按 y 升序、行内 x 升序），用于高德行程单表格列切分
+        const max = Math.min(doc.numPages, 8);
+        for (let p = 1; p <= max; p++) {
+          const page = await doc.getPage(p);
+          const tc = await page.getTextContent();
+          text += (tc.items || []).map(i => i.str || '').join(' ');
+          // 收集带坐标的文本项（同 y 合并为一行时整行拼接无法区分单元格，需保留 item 级 x）
+          for (const it of tc.items || []) {
+            const str = it.str || '';
+            if (!str.trim()) continue;
+            const tr = it.transform || [1, 0, 0, 1, 0, 0];
+            cells.push({ y: Math.round(tr[5]), x: tr[4], str });
+          }
+
+          // 渲染到画布，扫描非空白像素求内容包围盒
+          const viewport = page.getViewport({ scale: 1 });
+          const W = Math.max(1, Math.ceil(viewport.width));
+          const H = Math.max(1, Math.ceil(viewport.height));
+          const canvas = document.createElement('canvas');
+          canvas.width = W; canvas.height = H;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, W, H);
+          await page.render({ canvasContext: ctx, viewport }).promise;
+          const data = ctx.getImageData(0, 0, W, H).data;
+
+          let minX = W, minY = H, maxX = -1, maxY = -1;
+          for (let y = 0; y < H; y++) {
+            const row = y * W * 4;
+            for (let x = 0; x < W; x++) {
+              const i = row + x * 4;
+              const r = data[i], g = data[i + 1], b = data[i + 2];
+              if (r > 248 && g > 248 && b > 248) continue; // 视为空白
+              if (x < minX) minX = x;
+              if (x > maxX) maxX = x;
+              if (y < minY) minY = y;
+              if (y > maxY) maxY = y;
+            }
+          }
+          if (maxY < 0) {
+            content.push({ hCm: 0, wCm: 0, empty: true });
+          } else {
+            const cwPx = maxX - minX + 1;
+            const chPx = maxY - minY + 1;
+            // 画布坐标(原点左上) → PDF 源坐标(原点左下)
+            content.push({
+              hCm: chPx / PT_PER_CM,
+              wCm: cwPx / PT_PER_CM,
+              bbox: { x: minX, y: H - maxY, w: cwPx, h: chPx },
+            });
+          }
+        }
+        cells.sort((a, b) => (b.y - a.y) || (a.x - b.x)); // PDF 坐标 y 向上，视觉从上到下需 y 降序
+        return { text, content, cells };
+      } catch (e) {
+        return { text: '', content: null, cells: null, error: e.message || String(e) };
+      }
+    }
+
+    // 用 pdf.js 渲染第一页 + jsQR 扫描二维码，返回解码出的文本数组（可能多个二维码）
+    async function decodeQR(bytes) {
+      if (!window.jsQR || !window.pdfjsLib) return [];
+      const results = [];
+      // 低分辨率先试，失败再用更高分辨率（二维码在发票上通常约 1.5cm，需要足够像素）
+      for (const scale of [2.5, 4]) {
+        try {
+          const doc = await pdfjsLib.getDocument({ data: bytes.slice(), cMapUrl: './cmaps/', cMapPacked: true }).promise;
+          if (!doc.numPages) return results;
+          const page = await doc.getPage(1);
+          const viewport = page.getViewport({ scale });
+          const W = Math.ceil(viewport.width), H = Math.ceil(viewport.height);
+          if (W * H > 6000 * 6000) continue; // 防止超大画布导致卡顿
+          const canvas = document.createElement('canvas');
+          canvas.width = W; canvas.height = H;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, W, H);
+          await page.render({ canvasContext: ctx, viewport }).promise;
+          const img = ctx.getImageData(0, 0, W, H);
+          const code = jsQR(img.data, W, H, { inversionAttempts: 'dontInvert' });
+          if (code && code.data) {
+            results.push(code.data.trim());
+            break; // 第一页扫到一个即可
+          }
+        } catch (e) { /* 无二维码或渲染失败，忽略 */ }
+      }
+      return results;
+    }
+
+    // 解析发票二维码文本：判断是否发票 + 提取金额
+    // 常见格式：
+    //   - 增值税发票: 01,10,发票代码,开票日期YYYYMMDD,发票号码,校验码,价税合计,不含税金额,税额,...
+    //   - 数电票:     URL 带 fpdm/fphm/jshj 参数，或逗号分隔结构化串
+    //   - 部分含 JSON / key:value
+    function parseQRText(qrText) {
+      const t = (qrText || '').trim();
+      if (!t) return { isInvoice: false, amount: null };
+      // 发票特征：发票要素关键词 / 税务总局查验平台域名 / 20 位发票号码
+      // 或税局二维码结构化串（01,10/11,发票代码,日期,号码,校验码,价税合计,...）
+      const isInvoice = /fpdm|fphm|jshj|kprq|inv-veri\.chinatax|chinatax\.gov|发票号码|发票代码|价税合计|电子发票|增值税|数电票|全电发票|发票查验|taxinvoice|invoice/i.test(t)
+        || /^01[,，]\d{1,2}[,，]/.test(t);
+      // 仅发票才提取金额（避免把非发票二维码里的网址/密码等数字误当金额）
+      if (!isInvoice) return { isInvoice: false, amount: null };
+
+      let amount = null;
+      const valid = (v) => v != null && !isNaN(v) && v >= 0.01 && v <= 99999999.99;
+      // 1) key=value / 中文标签直取（优先价税合计/合计金额）
+      const kvRe = /(?:jshj|kphjje|hjje|amount|total|合计金额|价税合计|合计|金额|小写)[:=：,，]?\s*(\d{1,8}(?:\.\d{1,2})?)/i;
+      const kv = t.match(kvRe);
+      if (kv) {
+        const v = parseFloat(kv[1]);
+        if (valid(v)) amount = v;
+      }
+      // 2) 逗号/竖线/空格分隔的结构化串：优先含小数的数值，取最大合理值（价税合计通常最大；发票号超 8 位被排除）
+      if (amount == null) {
+        const nums = t.match(/\d{1,8}(?:\.\d{1,2})?/g) || [];
+        const withDec = nums.filter(n => n.includes('.'));
+        const pool = withDec.length ? withDec : nums;
+        const vals = pool.map(n => parseFloat(n)).filter(valid);
+        if (vals.length) amount = Math.max(...vals);
+      }
+      return { isInvoice, amount };
+    }
+
+    // 提取票面日期（YYYY-MM-DD），优先从文字，其次文件名；无则 null
+    function extractDate(text, fileName) {
+      const norm = (y, mo, d) => `${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const t = text || '';
+      // 1) 票面文字：2026-08-08 / 2026.08.08 / 2026年8月8日 / 20260808
+      let m = t.match(/(\d{4})[-./年](\d{1,2})[-./月](\d{1,2})/);
+      if (m) return norm(m[1], m[2], m[3]);
+      m = t.match(/(\d{4})(\d{2})(\d{2})(?!\d)/);
+      if (m) return norm(m[1], m[2], m[3]);
+      // 2) 文件名兜底
+      if (fileName) {
+        m = fileName.match(/(\d{4})[-./](\d{1,2})[-./](\d{1,2})|(\d{4})(\d{2})(\d{2})(?!\d)/);
+        if (m) return norm(m[1] || m[4], m[2] || m[5], m[3] || m[6]);
+      }
+      return null;
+    }
+
+    // 解析网约车行程单中的多条行程明细（兼容滴滴/和行/T3/曹操/花小猪/如祺/哈啰/首汽/享道等平台）
+    // 关键：PDF 文本常按 token 换行拆分（"特惠快\n车"、"周\n一"），因此先把所有空白合并为单行，
+    // 再用「序号+车型」锚定每条行程，段内取时间/里程/金额/地址。
+    // 返回 [{date, car, time, from, to, km, amount}], 无则 []
+    function parseTrips(text, defaultDate, cells) {
+      // 高德行程单专用：表头 序号|服务商|车型|上车时间|城市|起点|终点|金额（横向表格，item 级 x 坐标切分）
+      if (text && /AMAP ITINERARY|高德地图|高德打车/.test(text)) {
+        return parseGaodeTrips(text, defaultDate, cells);
+      }
+      return parseDiDiTrips(text, defaultDate);
+    }
+
+    // 高德行程单：横向表格，每格一个 item。
+    // 解析策略：① 视觉行分组（y 容差 5pt，同一行 item 的 y 有微小差异）；② 用表头各列的 x 构造列区间，
+    // 数据 item 按 x 落入哪个区间归入哪列（起点/终点列长文本 x 有偏移也可靠）；③ 按"序号"列锚定每个行程。
+    function parseGaodeTrips(text, defaultDate, cells) {
+      const out = [];
+      if (!cells || !cells.length) return out;
+      const C = cells.filter(c => c.str && c.str.trim());
+      if (C.length < 16) return out;
+      // 1) 视觉行分组（y 容差 5）
+      const rows = [];
+      for (const c of C) {
+        let placed = false;
+        for (const r of rows) {
+          if (Math.abs(r.y - c.y) <= 5) { r.items.push(c); placed = true; break; }
+        }
+        if (!placed) rows.push({ y: c.y, items: [c] });
+      }
+      for (const r of rows) r.items.sort((a, b) => a.x - b.x);
+      // 2) 表头行：含"序号"且含"金额"的视觉行
+      let headRow = null;
+      for (const r of rows) {
+        if (r.items.some(it => it.str.trim() === '序号') && r.items.some(it => it.str.includes('金额'))) { headRow = r; break; }
+      }
+      if (!headRow) return out;
+      const HEAD_FIELDS = ['序号', '服务商', '车型', '上车时间', '城市', '起点', '终点', '金额'];
+      const colX = {};
+      for (const it of headRow.items) {
+        const f = HEAD_FIELDS.find(fn => it.str.includes(fn));
+        if (f && colX[f] == null) colX[f] = it.x;
+      }
+      if (colX['序号'] == null || colX['金额'] == null) return out;
+      // 3) 表头列区间：相邻列 x 中点作边界
+      const cols = HEAD_FIELDS.map(f => ({ f, x: colX[f] })).filter(c => c.x != null).sort((a, b) => a.x - b.x);
+      const classify = (x) => {
+        for (let i = 0; i < cols.length; i++) {
+          const lo = i > 0 ? (cols[i - 1].x + cols[i].x) / 2 : -Infinity;
+          const hi = i < cols.length - 1 ? (cols[i].x + cols[i + 1].x) / 2 : Infinity;
+          if (x >= lo && x < hi) return cols[i].f;
+        }
+        return null;
+      };
+      // 4) 数据行（表头行之下），按"序号"锚定行程，item 按列区间归位
+      const dataRows = rows.filter(r => r.y < headRow.y - 3);
+      let cur = null;
+      const flush = () => { if (cur) out.push(cur); cur = null; };
+      for (const r of dataRows) {
+        for (const it of r.items) {
+          const col = classify(it.x);
+          if (!col) continue;
+          const t = it.str;
+          if (col === '序号') {
+            if (/^\d+$/.test(t.trim())) { flush(); cur = { parts: {} }; }
+            continue;
+          }
+          if (!cur) continue;
+          if (col === '金额') {
+            const am = t.match(/(\d+(?:\.\d{1,2})?)元/);
+            if (am && cur.amount == null) cur.amount = parseFloat(am[1]);
+            continue;
+          }
+          cur.parts[col] = (cur.parts[col] || '') + t;
+        }
+      }
+      flush();
+      // 5) 组装
+      return out.map(o => {
+        const tm = o.parts['上车时间'] ? o.parts['上车时间'].match(/(\d{4}[-/.]\d{1,2}[-/.]\d{1,2})\s*(\d{1,2}:\d{2})/) : null;
+        let city = (o.parts['城市'] || '').replace(/\s+/g, '');
+        let from = (o.parts['起点'] || '').replace(/\s+/g, '');
+        // 列边界偏移可能让起点误入城市列（如"嘉兴市万聚..."）：
+        // 从城市列头部提取城市名，余量回填到起点
+        if (city.length > 4) {
+          const cm = city.match(/^([\u4e00-\u9fa5]{2,3}市)/);
+          if (cm && city.length > cm[1].length) {
+            from = city.slice(cm[1].length) + from;
+            city = cm[1];
+          }
+        }
+        return {
+          date: defaultDate || (tm ? tm[1] : ''),
+          car: (o.parts['车型'] || '').replace(/\s+/g, '') || (o.parts['服务商'] || '').replace(/\s+/g, ''),
+          time: tm ? (tm[1] + ' ' + tm[2]) : '',
+          city,
+          from,
+          to: (o.parts['终点'] || '').replace(/\s+/g, ''),
+          km: null,
+          amount: o.amount != null ? o.amount : null,
+        };
+      });
+    }
+
+    function parseDiDiTrips(text, defaultDate) {
+      const out = [];
+      // PDF 文本流按 token 换行："特惠快\n车" 是单元格内换行（应合并），"店)\n七星关区" 是列间换行（应保留空格）。
+      // 统一策略：换行 → 单空格，车型词/周X 匹配容忍空格。
+      const flat = (text || '')
+        .replace(/[\r\n]+/g, ' ')
+        .replace(/[ \t\u3000]+/g, ' ')
+        .trim();
+      if (!flat) return out;
+      // 车型词容忍换行产生的空格（特惠快 车 / 惊喜特 价 / 城际拼 车 / 拼 车）
+      const CAR_ALT = '特惠快\\s*车|滴滴特快|惊喜特\\s*价|特惠|优享|跨城拼\\s*车|城际拼\\s*车|经济型|专车|豪华车|快车|接送机|商务车|舒适型|出租车|接机/站|接机|送机|拼\\s*车';
+      const CITY_RE = /(成都市?|北京市?|上海市?|广州市?|深圳市?|杭州市?|南京市?|苏州市?|武汉市?|西安市?|重庆市?|天津市?|合肥市?|济南市?|青岛市?|无锡市?|宁波市?|毕节市?|六盘水市?|遵义市?|贵阳市?|黄山市?)/;
+      const ENTRY_RE = new RegExp('(\\d+)\\s+(' + CAR_ALT + ')(?![\\u4e00-\\u9fa5])', 'g');
+      const WEEK_RE = /周[\s\u3000]*[一二三四五六日天]/g;
+      const entries = [];
+      let m;
+      while ((m = ENTRY_RE.exec(flat)) !== null) {
+        entries.push({ seq: m[1], car: m[2], start: m.index, end: ENTRY_RE.lastIndex });
+      }
+      for (let i = 0; i < entries.length; i++) {
+        const cur = entries[i];
+        const segStart = cur.end;
+        const segEnd = (i + 1 < entries.length) ? entries[i + 1].start : flat.length;
+        const seg = flat.slice(segStart, segEnd).trim();
+        if (!seg) continue;
+        // 1) 时间：YYYY-MM-DD HH:mm:ss 或 MM-DD HH:mm
+        const tm = seg.match(/(\d{4}[-./]\d{1,2}[-./]\d{1,2}|\d{1,2}[-./]\d{1,2})\s+(\d{1,2}:\d{2}(?::\d{2})?)/);
+        if (!tm) continue;
+        const timeStr = tm[1] + ' ' + tm[2];
+        // 2) 里程/金额：段内所有小数，取最后两个（里程在前、金额在后）；只有一个则里程空
+        const decimals = [];
+        for (const dm of seg.matchAll(/(\d+(?:\.\d+)?)/g)) {
+          const s = dm[1];
+          if (s.includes('.') && s !== '.') {
+            const v = parseFloat(s);
+            if (!isNaN(v)) decimals.push(v);
+          }
+        }
+        if (decimals.length < 1) continue;
+        const km = decimals.length >= 2 ? decimals[decimals.length - 2] : null;
+        const amount = decimals[decimals.length - 1];
+        if (isNaN(amount)) continue;
+        // 3) 地址：时间之后、里程金额之前
+        const afterTime = seg.slice(seg.indexOf(tm[0]) + tm[0].length);
+        let addr = afterTime;
+        const amtIdx = afterTime.lastIndexOf(String(amount));
+        if (amtIdx > 0) addr = afterTime.slice(0, amtIdx).trim();
+        if (km != null) {
+          const kmIdx = addr.lastIndexOf(String(km));
+          if (kmIdx > 0) addr = addr.slice(0, kmIdx).trim();
+        }
+        // 4) 清周X + 城市（时间前/后均可；城市名可能被空格拆开如"贵阳 市"）
+        addr = addr.replace(WEEK_RE, ' ').replace(/[ \t\u3000]+/g, ' ').trim();
+        const cityMatch = seg.match(CITY_RE);
+        let city = '';
+        let addrBody = addr;
+        if (cityMatch) {
+          city = cityMatch[1].replace(/\s+/g, '').replace(/市$/, '市');
+          const cityPattern = city.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          addrBody = addr
+            .replace(new RegExp(cityPattern + '\\s*市?'), ' ')
+            .replace(/[ \t\u3000]+/g, ' ')
+            .trim();
+        }
+        // 5) 起终点切分：起点/终点列内"区县|地点"用 | 分层；两列之间无显式分隔
+        const pipes = [];
+        for (const p of addrBody.matchAll(/\|/g)) pipes.push(p.index);
+        let from = '', to = '';
+        if (pipes.length >= 2) {
+          // 两个地址块都有 |：以最后一个 | 前最近空格为界
+          const lastPipe = pipes[pipes.length - 1];
+          const beforeLast = addrBody.slice(0, lastPipe);
+          const sp = beforeLast.lastIndexOf(' ');
+          if (sp > 0) { from = beforeLast.slice(0, sp).trim(); to = addrBody.slice(sp + 1).trim(); }
+          else { from = beforeLast.trim(); to = addrBody.slice(lastPipe).trim(); }
+        } else if (pipes.length === 1) {
+          // 仅起点含 |：以 | 之前最近空格为界；让 to 保留 "|"（"双流区|成都双流美居酒店"）
+          const p = pipes[0];
+          const sp = addrBody.lastIndexOf(' ', p);   // 在 | 之前找最近空格
+          if (sp > 0) {
+            from = addrBody.slice(0, sp).trim();
+            to = addrBody.slice(sp + 1).trim();
+          } else {
+            // 无空格：起点不含 |；终点从 | 开始（保留 |）
+            from = addrBody.slice(0, p).trim();
+            to = addrBody.slice(p).trim();
+          }
+        } else {
+          // 无 |：按地址中部最近的空格切分（中点后/前均尝试）
+          // —— 行 3 类："汉庭酒店(...) 贵阳..." 空格在中点之前
+          const mid = Math.floor(addrBody.length / 2);
+          let sp = addrBody.indexOf(' ', mid);
+          if (sp < 0) sp = addrBody.lastIndexOf(' ', mid); // 往后找不到时往前找
+          if (sp > 0) {
+            from = addrBody.slice(0, sp).trim();
+            to = addrBody.slice(sp + 1).trim();
+          } else {
+            // 仍无空格：按 ")" 切分（括号内常为起点备注，括号后为终点）
+            const cb = addrBody.lastIndexOf(')');
+            if (cb > 0 && cb < addrBody.length - 1) {
+              from = addrBody.slice(0, cb + 1).trim();
+              to = addrBody.slice(cb + 1).trim();
+            } else {
+              from = addrBody; to = '';
+            }
+          }
+        }
+        out.push({
+          date: defaultDate || '',
+          car: cur.car.replace(/\s+/g, ''),   // 车型去空格（"特惠快 车"→"特惠快车"）
+          time: timeStr,
+          city, from, to,
+          km, amount,
+        });
+      }
+      return out;
+    }
+
+    // 用 pdf.js 把第一页渲染成缩略图 dataURL（缓存）
+    async function renderThumb(bytes, id, scale = 0.25) {
+      if (thumbCache[id]) return thumbCache[id];
+      if (!window.pdfjsLib) return '';
+      try {
+        const doc = await pdfjsLib.getDocument({ data: bytes.slice(), cMapUrl: './cmaps/', cMapPacked: true }).promise;
+        if (!doc.numPages) return '';
+        const page = await doc.getPage(1);
+        const viewport = page.getViewport({ scale });
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.ceil(viewport.width);
+        canvas.height = Math.ceil(viewport.height);
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        await page.render({ canvasContext: ctx, viewport }).promise;
+        const url = canvas.toDataURL('image/jpeg', 0.85);
+        thumbCache[id] = url;
+        return url;
+      } catch (e) {
+        console.warn('缩略图生成失败', e);
+        return '';
+      }
+    }
+
+    // ---- 文件读取 ----
+    // 用 FileReader 读取，可获取字节级进度（arrayBuffer() 没有 progress 事件）
+    function readBytes(file, onProgress) {
+      return new Promise((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onprogress = (e) => { if (e.lengthComputable && onProgress) onProgress(e.loaded / e.total); };
+        fr.onload = () => resolve(new Uint8Array(fr.result));
+        fr.onerror = () => reject(fr.error || new Error('读取失败'));
+        fr.readAsArrayBuffer(file);
+      });
+    }
+
+    async function ingest(FileListLike, source) {
+      const arr = Array.from(FileListLike).filter(f => /\.pdf$/i.test(f.name));
+      if (arr.length === 0) { toast('文件夹内没有 PDF（图片等非 PDF 文件已忽略）'); return; }
+      $('#generate').disabled = true;
+      $('#drop').classList.add('busy');
+      const kws = parseKws();
+      const prog = $('#prog'), fill = $('#progFill'), pct = $('#progPct'), pname = $('#progName');
+      const total = arr.length;
+      const totalBytes = arr.reduce((s, f) => s + (f.size || 0), 0);
+      let done = 0, readBytesTotal = 0;
+      const setProg = (cur, mb) => {
+        const p = total ? Math.round((done / total) * 100) : 0;
+        fill.style.width = p + '%';
+        pct.textContent = p + '%';
+        pname.textContent = cur ? '正在读取 ' + cur : `已完成 ${done}/${total}`;
+        if (mb != null) pname.textContent += ` · ${mb}MB`;
+      };
+      prog.classList.add('show');
+      setProg('');
+      // 新增计数：循环前 files 长度
+      const beforeLen = files.length;
+      for (const f of arr) {
+        if (files.some(x => x.name === f.name)) { done++; readBytesTotal += f.size || 0; setProg(f.name); continue; } // 同名跳过
+        setProg(f.name);
+        try {
+          // 读取阶段：按文件字节实时更新整体进度
+          const bytes = await readBytes(f, (p) => {
+            const overall = total ? (done + p) / total : 0;
+            fill.style.width = (overall * 100).toFixed(1) + '%';
+            pct.textContent = Math.round(overall * 100) + '%';
+            const mb = ((readBytesTotal + (f.size || 0) * p) / 1048576).toFixed(1);
+            pname.textContent = `正在读取 ${f.name} · ${mb}MB`;
+          });
+          readBytesTotal += f.size || 0;
+          let w = 0, h = 0, pages = 0, text = '', content = null, analyzeError = '';
+          try {
+            const doc = await PDFDocument.load(bytes, { ignoreEncryption: true });
+            const pg = doc.getPages();
+            pages = pg.length;
+            if (pages > 0) { const s = pg[0].getSize(); w = s.width; h = s.height; }
+          } catch (e) { /* 暂记为无法解析 */ }
+          // 分析票面：提取文字（类别识别 / 火车票识别）+ 每页实际内容包围盒（小发票判定）
+          const ana = await analyzePdf(bytes);
+          text = ana.text; content = ana.content; analyzeError = ana.error || '';
+          const type = classifyInvoice(text);
+          const train = type === 'train';
+          const amt = parseAmount(text);
+          // 二维码识别：判断是否发票 + 提取金额（金额优先用二维码，比文字解析更可靠）
+          let qrAmount = null, qrInvoice = false, qrRaw = '';
+          try {
+            const qrs = await decodeQR(bytes);
+            for (const q of qrs) {
+              const p = parseQRText(q);
+              if (p.isInvoice) qrInvoice = true;
+              if (p.amount != null && qrAmount == null) qrAmount = p.amount;
+              if (!qrRaw) qrRaw = q.slice(0, 120);
+            }
+          } catch (e) { /* 二维码解码失败不影响主流程 */ }
+          // 特殊归类 1：网约车/出租车若二维码无金额 + 文字含"行程单/报销凭证"，则归到行程单
+          // （如滴滴出行-行程单属于报销凭证而非发票，金额不应计入发票总额）
+          let finalType = (qrInvoice && type === 'other') ? 'invoice' : type;
+          if (qrAmount == null && (finalType === 'ridehail' || finalType === 'taxi') && /行程单|报销凭证|journey/.test(text)) {
+            finalType = 'itinerary';
+          }
+          // 特殊归类 2：二维码确认为发票 + 文字含"发票/电子发票/增值税"等特征，强制升级为发票
+          // 修复：被"出租车/打车"等关键词误判为 ridehail 的出租车发票场景
+          if (qrInvoice && /发票|增值税|电子发票|价税合计|普通发票|专用发票/.test(text) &&
+              (finalType === 'ridehail' || finalType === 'taxi' || finalType === 'other' || finalType === 'transit')) {
+            finalType = 'invoice';
+          }
+          const finalAmount = (qrAmount != null) ? qrAmount : amt.amount;
+          const date = extractDate(text, f.name);
+          // 行程单解析多条行程明细（网约车时间线用）；高德格式需要 item 级坐标切分
+          const trips = (finalType === 'itinerary') ? parseTrips(text, date, ana.cells) : [];
+          const rec = {
+            id: ++idSeq, name: f.name, bytes, w, h, pages, text, content, analyzeError,
+            train,
+            date,
+            trips,                                    // 多条行程明细（网约车时间线渲染用）
+            docType: finalType,
+            amount: finalAmount,
+            upper: amt.upper,
+            qrAmount,
+            include: true, error: pages === 0
+          };
+          files.push(rec);
+          // 调试：在控制台输出识别到的文字片段、金额、行程明细，便于排查
+          console.log(`[${f.name}] 类型:${finalType} 文字:`, text.slice(0, 500).replace(/\s+/g, ' ') || '(空)',
+            '| 金额:', finalAmount, amt.upper ? '| 大写:' + amt.upper : '',
+            qrAmount != null ? `| 二维码金额:${qrAmount}` : (qrRaw ? `| 二维码(未解析出金额):${qrRaw}` : ''),
+            qrInvoice ? '| 二维码:是发票' : '',
+            trips.length ? `| 行程×${trips.length}: ` + trips.map(t => `${t.car}/${t.time}/${t.km}km/${t.amount}元`).join(' | ') : (finalType === 'itinerary' ? '| 行程单未识别明细' : ''),
+            analyzeError ? `错误:${analyzeError}` : '');
+        } catch (e) {
+          toast('读取失败：' + f.name);
+        }
+        done++;
+        setProg(f.name);
+      }
+      // 收尾：100% 后淡出进度条，恢复拖拽区
+      done = total; setProg('');
+      prog.classList.remove('show');
+      setTimeout(() => { fill.style.width = '0%'; }, 400); // 等淡出结束后再归零，避免填充条突兀缩回
+      $('#drop').classList.remove('busy');
+      // 提示可能未识别到的文件
+      const unsure = files.filter(f => !f.train && !f.error && (!f.text || f.text.length < 10));
+      if (unsure.length) {
+        toast(`${unsure.length} 个文件未提取到有效文字，若含火车票请手动开启“火车票”开关`);
+      }
+      // 导入成功后：新增文件数 > 0 → 隐藏拖入卡片，显示时间线/文件信息/fabbar
+      const newCount = files.length - beforeLen;
+      if (newCount > 0) {
+        toast(`已导入 ${newCount} 张发票`);
+        $('#dropCard').classList.add('hidden');
+        $('#timelineCard').classList.remove('hidden');
+        $('#fileInfoCard').classList.remove('hidden');
+        $('#fabbar').classList.remove('hidden');
+      }
+      render();
+      updateGenerateBtn();
+      updateTimeline();
+    }
+
+    // 文件夹 / 拖拽的目录遍历
+    function readEntry(entry) {
+      return new Promise((resolve) => {
+        if (entry.isFile) {
+          entry.file(file => resolve([file]));
+        } else if (entry.isDirectory) {
+          const reader = entry.createReader();
+          const all = [];
+          const readBatch = () => reader.readEntries(async (ents) => {
+            if (!ents.length) {
+              let flat = [];
+              for (const sub of all) flat = flat.concat(sub);
+              resolve(flat);
+            } else {
+              const res = ents.map(e => readEntry(e));
+              const r = await Promise.all(res);
+              all.push(...r);
+              readBatch();
+            }
+          });
+          readBatch();
+        } else resolve([]);
+      });
+    }
+
+    async function handleDrop(dt) {
+      let collected = [];
+      if (dt.items && dt.items.length && dt.items[0].webkitGetAsEntry) {
+        const entries = [];
+        for (const it of dt.items) {
+          const e = it.webkitGetAsEntry && it.webkitGetAsEntry();
+          if (e) entries.push(e);
+        }
+        if (entries.length) {
+          const nested = await Promise.all(entries.map(readEntry));
+          collected = nested.flat();
+        }
+      }
+      if (!collected.length && dt.files && dt.files.length) {
+        collected = Array.from(dt.files);
+      }
+      if (collected.length) ingest(collected, 'drop');
+    }
+
+    // ---- 渲染列表 ----
+    // 内联 SVG 图标（tabler 风格 path，MIT，stroke 1.5；无构建环境，内联复用标准图标库 path）
+    const ICON_RECEIPT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3v18l2-1.5 2 1.5 2-1.5 2 1.5 2-1.5 2 1.5V3l-2 1.5-2-1.5-2 1.5L9 3 7 4.5 5 3z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>';
+    const ICON_PLANE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>';
+    const ICON_FILE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/></svg>';
+    const ICON_X = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+    const ICON_ALERT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>';
+    const ICON_CHEVRON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+
+    function buildRow(f, threshold, idx) {
+      const row = document.createElement('div');
+      row.className = 'file-row';
+      row.style.setProperty('--idx', idx || 0);
+
+      const sizeCm = f.pages ? `${(f.w / PT_PER_CM).toFixed(1)}×${(f.h / PT_PER_CM).toFixed(1)} cm` : '-';
+      // 小发票判定依据：实际内容高度（去掉空白），而非整页高度
+      const hasContent = f.content && f.content.length;
+      const maxContentCm = hasContent
+        ? Math.max(...f.content.map(c => (c.empty ? 0 : (c.hCm || 0))))
+        : (f.pages ? f.h / PT_PER_CM : 0);
+      const solo = !f.train && maxContentCm >= threshold / PT_PER_CM;
+      const noText = !f.text || f.text.length < 10;
+      const badge = f.error
+        ? '<span class="badge err">无法解析</span>'
+        : (f.train
+            ? '<span class="badge pair">火车票 · 一页两张</span>'
+            : (solo
+                ? '<span class="badge solo">含独占页</span>'
+                : '<span class="badge pair">两联拼版</span>'));
+      const warn = (!f.error && !f.train && noText)
+        ? '<span class="badge err" title="未提取到文字，如为火车票请手动开启右侧开关">未识别</span>'
+        : '';
+      // 金额（大小写）：优先用票面大写，否则由小写金额生成；二维码识别金额时标注来源
+      const amtLower = (f.amount != null) ? '¥' + f.amount.toFixed(2) : '-';
+      const amtUpper = (f.upper || (f.amount != null ? numToChinese(f.amount) : ''));
+      const qrTag = (f.qrAmount != null) ? '（二维码）' : '';
+      const amountStr = `<span class="amt" title="小写 ${amtLower}${amtUpper ? ' / 大写 ' + amtUpper : ''}${qrTag}">${amtLower}${amtUpper ? '（' + amtUpper + '）' : ''}${qrTag}</span>`;
+      const catMap = {
+        train:    { cls: 'cat-train',    label: '火车票' },
+        flight:   { cls: 'cat-flight',   label: '机票' },
+        itinerary:{ cls: 'cat-itinerary',label: '行程单' },
+        ridehail: { cls: 'cat-ridehail', label: '网约车' },
+        transit:  { cls: 'cat-transit',  label: '公共交通' },
+        hotel:    { cls: 'cat-hotel',    label: '住宿' },
+        meal:     { cls: 'cat-meal',     label: '餐饮' },
+        invoice:  { cls: 'cat-invoice',  label: '发票' },
+        other:    { cls: 'cat-other',    label: '其他' }
+      };
+      const cat = catMap[f.docType || 'other'];
+      const catBadge = `<span class="badge ${cat.cls}">${cat.label}</span>`;
+      // 行程单显示日期标签（按日期排序时的视觉锚点）
+      const dateTag = (f.docType === 'itinerary' && f.date) ? `<span class="meta-date">${f.date}</span>` : '';
+
+      row.innerHTML = `
+        <div class="row-check ${f.include ? 'on' : ''}" data-act="include" title="包含/排除"></div>
+        <div class="name">
+          <div class="n">${escapeHtml(f.name)}</div>
+          <div class="meta">
+            ${dateTag}
+            <span>${f.pages ? f.pages + ' 页' : '未知'}</span>
+            <span>${sizeCm}</span>
+            <span>内容高 ${maxContentCm.toFixed(1)}cm</span>
+            ${catBadge}
+            ${badge}
+            ${warn}
+          </div>
+        </div>
+        <label class="switch" title="标记为火车票（自动加印一份）">
+          <span class="lab">火车票</span>
+          <input type="checkbox" data-act="train" ${f.train ? 'checked' : ''} />
+          <span class="track"></span>
+        </label>
+        <button class="btn ghost icon-btn" data-act="remove" title="移除">${ICON_X}</button>
+      `;
+
+      row.querySelector('[data-act="include"]').onclick = () => { f.include = !f.include; render(); updateGenerateBtn(); };
+      row.querySelector('[data-act="train"]').onchange = (e) => {
+        trainOverride[f.name] = e.target.checked;
+        f.train = e.target.checked;
+        f.docType = e.target.checked ? 'train' : classifyInvoice(f.text || '');
+        render(); updateGenerateBtn();
+      };
+      row.querySelector('[data-act="remove"]').onclick = () => { files = files.filter(x => x.id !== f.id); delete trainOverride[f.name]; render(); updateGenerateBtn(); };
+
+      // 鼠标悬浮预览第一页缩略图
+      row.addEventListener('mouseenter', () => showPreviewFor(f, row));
+      row.addEventListener('mouseleave', hidePreview);
+      return row;
+    }
+
+    // 三大分区：发票 / 行程单 / 其他。空分区不显示。
+    const SECTIONS = [
+      { key: 'invoice',   title: '发票',   icon: ICON_RECEIPT, color: 'var(--blue)',
+        types: new Set(['train', 'flight', 'ridehail', 'transit', 'hotel', 'meal', 'invoice']) },
+      { key: 'itinerary', title: '行程单', icon: ICON_PLANE, color: '#3f3e8a',
+        types: new Set(['itinerary']) },
+      { key: 'other',     title: '其他',   icon: ICON_FILE, color: 'var(--ink-2)',
+        types: new Set(['other']) }
+    ];
+
+    function render() {
+      // 小发票阈值固定 14cm（A4 默认 14+ 独占，火车票固定 1 页两张）；原页面顶部设置项已去除
+      const threshold = 14 * PT_PER_CM;
+      listEl.innerHTML = '';
+      if (files.length === 0) {
+        listEl.appendChild(emptyEl);
+        emptyEl.style.display = '';
+        $('#count').textContent = '0 个 PDF';
+        return;
+      }
+      emptyEl.style.display = 'none';
+      $('#count').textContent = files.length + ' 个 PDF';
+
+      // 按分区依次渲染；空分区不显示
+      for (const sec of SECTIONS) {
+        let list = files.filter(f => sec.types.has(f.docType || 'other'));
+        if (list.length === 0) continue;
+        // 行程单分区按票面日期升序（无日期排最后）
+        if (sec.key === 'itinerary') {
+          list = list.slice().sort((a, b) => {
+            if (!a.date && !b.date) return 0;
+            if (!a.date) return 1;
+            if (!b.date) return -1;
+            return a.date.localeCompare(b.date);
+          });
+        }
+        // 行程单与「其他」不计入总金额
+        const showSum = (sec.key === 'invoice');
+        const sum = showSum ? list.reduce((s, f) => s + (f.amount || 0), 0) : 0;
+        const sumStr = showSum && list.some(f => f.amount != null)
+          ? `<b>¥${sum.toFixed(2)}</b>` : '';
+
+        const wrap = document.createElement('div');
+        wrap.className = 'list-section';
+        const head = document.createElement('div');
+        head.className = 'list-section-head';
+        head.title = '点击收起 / 展开';
+        head.innerHTML = `
+          <div class="title" style="color:${sec.color}"><span class="ic">${sec.icon}</span><span class="caret">${ICON_CHEVRON}</span>${sec.title}</div>
+          <div class="meta">${list.length} 个${sumStr ? ' · ' + sumStr : ''}</div>
+        `;
+        head.addEventListener('click', () => wrap.classList.toggle('collapsed'));
+        const body = document.createElement('div');
+        body.className = 'list-section-body';
+        list.forEach((f, i) => body.appendChild(buildRow(f, threshold, i)));
+        wrap.appendChild(head);
+        wrap.appendChild(body);
+        listEl.appendChild(wrap);
+      }
+    }
+
+    function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+    // 悬浮预览控制
+    let previewTimer = null;
+    function showPreviewFor(f, rowEl) {
+      const pop = $('#previewPop');
+      const img = $('#previewImg');
+      const tip = $('#previewTip');
+      pop.classList.add('show');
+      img.style.opacity = '0.4';
+      tip.textContent = '正在生成预览…';
+      // 定位：行右侧或左侧（避免超出视口）
+      const rect = rowEl.getBoundingClientRect();
+      const popW = 280;
+      let left = rect.right + 12;
+      if (left + popW > window.innerWidth - 12) left = rect.left - popW - 12;
+      let top = rect.top;
+      if (top < 12) top = 12;
+      pop.style.left = left + 'px';
+      pop.style.top = top + 'px';
+
+      clearTimeout(previewTimer);
+      previewTimer = setTimeout(async () => {
+        const url = await renderThumb(f.bytes, f.id, 0.28);
+        if (url) {
+          img.src = url;
+          img.style.opacity = '1';
+          tip.textContent = `${f.name}`;
+        } else {
+          img.src = '';
+          tip.textContent = '预览生成失败';
+        }
+      }, 120);
+    }
+    function hidePreview() {
+      clearTimeout(previewTimer);
+      $('#previewPop').classList.remove('show');
+    }
+
+    function updateGenerateBtn() {
+      const usable = files.filter(f => f.include && !f.error);
+      $('#generate').disabled = usable.length === 0;
+      $('#clear').disabled = files.length === 0;
+      const summary = $('#summary');
+
+      if (usable.length === 0) {
+        summary.innerHTML = '<div class="summary-empty">还没有可合并的文件</div>';
+        return;
+      }
+
+      const trainCount = usable.filter(f => f.train).length;
+      const itineraryCount = usable.filter(f => f.docType === 'itinerary').length;
+      const transitCount = usable.filter(f => f.docType === 'transit').length;
+      // 计入总金额的类别：火车票 / 机票 / 网约车 / 公共交通 / 住宿 / 餐饮 / 通用发票
+      // 行程单（报销凭证）与其他非发票不计入
+      const amountCategories = new Set(['train', 'flight', 'ridehail', 'transit', 'hotel', 'meal', 'invoice']);
+      const invoiceFiles = usable.filter(f => amountCategories.has(f.docType));
+      const unknownAmtCount = invoiceFiles.filter(f => f.amount == null).length;
+      const totalAmount = invoiceFiles.reduce((sum, f) => sum + (f.amount || 0), 0);
+
+      // 仅展示合计文件数与金额；火车票/行程单等明细从右侧列表查看
+      let html = `<div class="row">合并 <b>${usable.length}</b> 个</div>`;
+
+      // 第二行：大字金额合计 + 大写
+      if (invoiceFiles.length) {
+        const upper = numToChinese(totalAmount);
+        html += `<div class="total">¥${totalAmount.toFixed(2)}` +
+                (upper ? `<span class="upper">${upper}</span>` : '') +
+                `</div>`;
+      }
+      if (unknownAmtCount) {
+        html += `<div class="warn">${ICON_ALERT}${unknownAmtCount} 张发票金额未识别</div>`;
+      }
+
+      summary.innerHTML = html;
+    }
+
+    // ---- 网约车时间线：仅识别行程单，按行程明细逐行展示 ----
+    // 行程列：起点 / 终点 合并，中间以 → 连接（无终点只显示起点）
+    function routeCell(t) {
+      const from = escapeHtml(t.from || '-');
+      const to = escapeHtml(t.to || '');
+      if (!to || to === '-') return `<div class="route-from">${from}</div>`;
+      return `<div class="route-from">${from}</div>`
+           + `<div class="route-arrow" aria-hidden="true">→</div>`
+           + `<div class="route-to">${to}</div>`;
+    }
+
+    function updateTimeline() {
+      const usable = files.filter(f => f.include && !f.error);
+      const countEl = $('#timelineCount');
+      const timelineEl = $('#timeline');
+      if (usable.length === 0) {
+        countEl.textContent = '0 段行程';
+        timelineEl.innerHTML = '<div class="tl-empty">导入行程单后，按行程逐条展示</div>';
+        return;
+      }
+      const itineraryFiles = usable.filter(f => f.docType === 'itinerary');
+      if (itineraryFiles.length === 0) {
+        countEl.textContent = '0 段行程';
+        timelineEl.innerHTML = '<div class="tl-empty">未识别到任何行程单</div>';
+        return;
+      }
+      // 汇总所有行程，按 date 升序
+      const allTrips = [];
+      for (const f of itineraryFiles) {
+        if (f.trips && f.trips.length) {
+          for (const t of f.trips) allTrips.push(t);
+        } else if (f.date) {
+          // 未解析出明细行程：退化为单行摘要（保持总段数合理）
+          allTrips.push({
+            date: f.date,
+            car: '行程单',
+            time: '',
+            city: '',
+            from: '',
+            to: '',
+            km: null,
+            amount: null,
+          });
+        }
+      }
+      if (allTrips.length === 0) {
+        countEl.textContent = '0 段行程';
+        timelineEl.innerHTML = '<div class="tl-empty">未从行程单中识别到任何行程</div>';
+        return;
+      }
+      allTrips.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+      const rows = allTrips.map((t, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td>${escapeHtml(t.car || '-')}</td>
+          <td>${escapeHtml(t.time || '-')}</td>
+          <td>${escapeHtml(t.city || '-')}</td>
+          <td class="route">${routeCell(t)}</td>
+          <td>${t.km != null ? t.km.toFixed(1) : '-'}</td>
+          <td>${t.amount != null ? t.amount.toFixed(2) : '-'}</td>
+        </tr>
+      `).join('');
+      timelineEl.innerHTML = `
+        <table class="tl-table">
+          <colgroup>
+            <col class="c-num"><col class="c-car"><col class="c-time">
+            <col class="c-city"><col class="c-route">
+            <col class="c-km"><col class="c-amt">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>序号</th>
+              <th>车型</th>
+              <th>上车时间</th>
+              <th>城市</th>
+              <th>行程</th>
+              <th>里程(km)</th>
+              <th>金额(¥)</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
+      countEl.textContent = `${allTrips.length} 段行程`;
+    }
+
+    // ---- 生成 ----
+    async function generate() {
+      const usable = files.filter(f => f.include && !f.error);
+      if (usable.length === 0) { toast('没有可合并的文件'); return; }
+      $('#generate').disabled = true;
+      toast('正在合并…');
+      try {
+        // 小发票阈值 14cm（A4 默认 14+ 独占，火车票固定 1 页两张）；marginMm 固定 8mm（与原默认值一致）
+        const thresholdCm = 14;
+        const marginMm = 8;
+        const input = usable.map(f => ({ name: f.name, bytes: f.bytes, train: f.train, content: f.content }));
+        const merged = await mergeInvoices(PDFDocument, input, {
+          thresholdCm, marginMm,
+          isTrain: (name) => (name in trainOverride ? trainOverride[name] : fallbackDetect(name))
+        });
+        if (!merged) { toast('合并结果为空'); return; }
+        if (lastBlobUrl) URL.revokeObjectURL(lastBlobUrl);
+        lastBlobUrl = URL.createObjectURL(new Blob([merged], { type: 'application/pdf' }));
+        $('#preview').src = lastBlobUrl;
+        $('#resultCard').style.display = '';
+        $('#resultCard').scrollIntoView({ behavior: 'smooth' });
+        const outDoc = await PDFDocument.load(merged);
+        toast('合并完成：共 ' + outDoc.getPageCount() + ' 页 A4');
+      } catch (e) {
+        console.error(e);
+        toast('合并出错：' + (e.message || e));
+      } finally {
+        updateGenerateBtn();
+      }
+    }
+
+    function download() {
+      if (!lastBlobUrl) return;
+      const a = document.createElement('a');
+      a.href = lastBlobUrl;
+      a.download = '合并发票_' + new Date().toISOString().slice(0,10) + '.pdf';
+      document.body.appendChild(a); a.click(); a.remove();
+    }
+
+    // ---- 事件绑定 ----
+    $('#pickFolder').onclick = () => $('#folderInput').click();
+    $('#pickFiles').onclick = () => $('#fileInput').click();
+    $('#folderInput').onchange = (e) => ingest(e.target.files, 'folder');
+    $('#fileInput').onchange = (e) => ingest(e.target.files, 'files');
+
+    const drop = $('#drop');
+    // 点击卡片空白处打开文件夹选择；点击内部按钮（选择文件夹/选择 PDF）时事件会冒泡到这里，
+    // 必须跳过，否则会再次触发 folderInput.click() 导致弹两次窗口
+    drop.onclick = (e) => {
+      if (e.target.closest('button')) return;
+      $('#folderInput').click();
+    };
+    ['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('drag'); }));
+    ['dragleave','drop'].forEach(ev => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove('drag'); }));
+    drop.addEventListener('drop', (e) => handleDrop(e.dataTransfer));
+
+    // 全窗口拖放也能接收
+    window.addEventListener('dragover', e => e.preventDefault());
+    window.addEventListener('drop', e => { e.preventDefault(); if (e.target === drop) return; handleDrop(e.dataTransfer); });
+
+    $('#generate').onclick = generate;
+    $('#clear').onclick = () => {
+      files = []; for (const k in trainOverride) delete trainOverride[k];
+      render(); updateGenerateBtn(); updateTimeline();
+      $('#resultCard').style.display = 'none';
+      $('#dropCard').classList.remove('hidden');
+      $('#timelineCard').classList.add('hidden');
+      $('#fileInfoCard').classList.add('hidden');
+      $('#fabbar').classList.add('hidden');
+    };
+    $('#download').onclick = download;
+
+    updateGenerateBtn();
+    updateTimeline();
+  </script>
+</body>
+</html>
