@@ -1,4 +1,4 @@
-/* ==========================================================================
+﻿/* ==========================================================================
    app.js - 核心逻辑
    Excel解析 / 数据管理 / 报告HTML渲染 / 模板下载
    ========================================================================== */
@@ -14,7 +14,7 @@
     "后端A相幅值(mV)", "后端B相幅值(mV)", "后端C相幅值(mV)",
     "双端定位谱图图片",
     "定位分析描述", "检测结果分析", "疑似杆情况说明", "处理意见",
-    "现场图片", "验证描述"
+    "现场图片1", "现场图片2", "验证描述"
   ];
 
   var BASIC_INFO = [
@@ -71,7 +71,7 @@
           "疑似杆情况说明":"到现场杆塔下人耳可听见明显放电声，肉眼观察无明显异常的现象，后续用其他远程拍摄设备发现绝缘子内部存在疑似穿孔、绝缘子捆扎线存在明显放电痕迹。",
           "处理意见":"放电强度较强，人耳可听明显放电声，现场已确定疑似故障位置，需及时符合验证，并进行缺陷故障处理（停电更换或带电左右更换）。",
           "验证描述": "经带电作业（或停电检修）流程，对设备定位的故障缺陷位置实施了精准消缺处理。现场拆解疑似缺陷绝缘子，可见明显穿孔击穿痕迹。采用兆欧表对该绝缘子进行绝缘电阻检测，实测绝缘电阻值为5MΩ。",
-          "前端实时图谱图片": "", "后端实时图谱图片": "", "双端定位谱图图片": "", "现场图片": ""
+          "前端实时图谱图片": "", "后端实时图谱图片": "", "双端定位谱图图片": "", "现场图片1": "", "现场图片2": ""
         },
         {
           "序号":2, "线路名称":"10kV野马线", "结论":"10kV野马线T车路箐支线#16.29 C相绝缘子存在局部放电隐患",
@@ -116,7 +116,7 @@
               var r;
               while ((r = relRe.exec(relsXml))) rid2file[r[1]] = r[2];
               var sheetFiles = [];
-              ["xl/worksheets/sheet1.xml","xl/worksheets/sheet2.xml","xl/worksheets/sheet3.xml"].forEach(function(n){
+              Object.keys(z.files).filter(function(n){ return /^xl\/worksheets\/sheet\d+\.xml$/i.test(n); }).forEach(function(n){
                 if (z.file(n)) sheetFiles.push(n);
               });
               if (!sheetFiles.length) return resolve({});
@@ -229,8 +229,20 @@
                 });
               }
             });
+                        // 向后兼容：旧模板的"现场图片"字段映射为"现场图片1"
+            defects.forEach(function(def) {
+              if (!KPDA.hasVal(def["现场图片1"]) && KPDA.hasVal(def["现场图片"])) {
+                def["现场图片1"] = def["现场图片"];
+              }
+            });
             resolve({ info: info, defects: defects });
-          }).catch(function(){ resolve({ info: info, defects: defects }); });
+          }).catch(function(){             // 向后兼容：旧模板的"现场图片"字段映射为"现场图片1"
+            defects.forEach(function(def) {
+              if (!KPDA.hasVal(def["现场图片1"]) && KPDA.hasVal(def["现场图片"])) {
+                def["现场图片1"] = def["现场图片"];
+              }
+            });
+            resolve({ info: info, defects: defects }); });
         } catch(err) { reject(err); }
       };
       reader.onerror = reject;
@@ -330,7 +342,19 @@
       h += '<p class="report-para">' + esc(g(d["定位分析描述"], "")) + '</p>';
     }
 
-    h += '<div class="report-blue-bar">现场图片</div>';
+      h += '<div class="report-blue-bar">现场疑似缺陷图片</div>';
+  var hasS1 = hasVal(d["现场图片1"]);
+  var hasS2 = hasVal(d["现场图片2"]);
+  if (hasS1 && hasS2) {
+    h += '<div class="report-img-row">';
+    h += '<div class="report-img-half">' + imgHtml(d["现场图片1"], "绝缘子穿孔") + '<div class="report-img-caption">绝缘子穿孔</div></div>';
+    h += '<div class="report-img-half">' + imgHtml(d["现场图片2"], "捆扎线破损") + '<div class="report-img-caption">捆扎线破损</div></div>';
+    h += '</div>';
+  } else if (hasS1) {
+    h += imgHtml(d["现场图片1"], "现场图片（绝缘子穿孔）");
+  } else if (hasS2) {
+    h += imgHtml(d["现场图片2"], "现场图片（捆扎线破损）");
+  }
     h += imgHtml(d["现场图片"], "现场图片");
 
     if (hasVal(d["结论"]) || hasVal(d["检测结果分析"]) || hasVal(d["疑似杆情况说明"]) || hasVal(d["处理意见"])) {
@@ -547,3 +571,5 @@
     esc: esc, hasVal: hasVal, num: num, g: g, splitSent: splitSent, splitLines: splitLines
   };
 })();
+
+
