@@ -553,3 +553,1310 @@ body {
   .main { padding: 20px 14px; }
   .report-body { padding: 14px; }
 }
+
+/* ============================================================
+   OhhMyDesign 换肤层（追加，不改原逻辑）
+   「playful-scandinavian 工作台」: 天空蓝渐变底 + 白玻璃浮层
+   + 墨蓝文字 + 品牌橙 CTA + 工具蓝选中态
+   ============================================================ */
+:root {
+  --bg: #EAF3FB;
+  --sidebar-bg: rgba(255,255,255,.82);
+  --surface: rgba(255,255,255,.92);
+  --border: #14202b22;
+  --border-2: #14202b12;
+  --accent: #F0531C;
+  --accent-hover: #D2410E;
+  --accent-light: rgba(240,83,28,.08);
+  --text-1: #14202B;
+  --text-2: #4A6173;
+  --text-3: #8AA6B8;
+  --focus-ring: rgba(13,153,255,.5);
+  --radius: 12px;
+  --shadow-card: 0 20px 50px -32px rgba(20,19,16,.32);
+}
+body {
+  background:
+    radial-gradient(130% 95% at 82% -18%, rgba(255,255,255,.7) 0%, rgba(255,255,255,0) 40%),
+    radial-gradient(120% 80% at 10% 118%, rgba(196,230,255,.75) 0%, rgba(196,230,255,0) 52%),
+    linear-gradient(180deg,#3E97E2 0%,#5EAEEA 40%,#86C4EF 76%,#ACD8F4 100%);
+  background-attachment: fixed;
+  color: var(--text-1);
+}
+/* 侧栏玻璃化 */
+.left-sidebar, .right-sidebar {
+  background: rgba(255,255,255,.72);
+  backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+  border-color: rgba(255,255,255,.65);
+}
+/* 面板玻璃化 */
+.panel, .upload-zone, .defect-card, .accent-card, .side-card, .empty-state {
+  background: rgba(255,255,255,.78);
+  backdrop-filter: blur(12px) saturate(1.1);
+  -webkit-backdrop-filter: blur(12px) saturate(1.1);
+  box-shadow: var(--shadow-card);
+}
+/* 主按钮品牌橙（沿用原 accent 变量，仅强化阴影语言） */
+.btn-primary, .btn-primary.btn {
+  box-shadow: 0 12px 26px -12px rgba(240,83,28,.5);
+  transition: transform .24s cubic-bezier(.2,.85,.25,1), box-shadow .24s;
+}
+.btn-primary:hover, .btn-primary.btn:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 20px 40px -16px rgba(20,32,43,.42);
+}
+.btn-primary:active, .btn-primary.btn:active {
+  transform: translateY(-1px) scale(.99);
+  background: var(--accent-hover);
+}
+/* 焦点环工具蓝 */
+:focus-visible { outline: 2px solid var(--tool, #0D99FF); outline-offset: 2px; }
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #101820;
+    --sidebar-bg: rgba(22,30,38,.82);
+    --surface: rgba(22,30,38,.92);
+    --border: rgba(232,238,244,.18);
+    --text-1: #E8EEF4;
+    --text-2: #A9BCCB;
+    --text-3: #6E8496;
+  }
+  body {
+    background: linear-gradient(180deg,#0F2436 0%,#17354F 40%,#1E4460 100%);
+    background-attachment: fixed;
+  }
+  .left-sidebar, .right-sidebar { background: rgba(16,24,32,.8); }
+  .panel, .upload-zone, .defect-card, .side-card, .empty-state { background: rgba(22,30,38,.82); }
+}
+
+/* ============================================================
+   OhhMyDesign 交互特效层（追加）
+   按钮扫光 / 卡片悬停上浮 / 状态点呼吸 / Figma 式选中反馈
+   ============================================================ */
+/* 1) 主按钮 ink 圆扫光 */
+.btn-primary, .btn-primary.btn {
+  position: relative; overflow: hidden; isolation: isolate;
+}
+.btn-primary::before, .btn-primary.btn::before {
+  content: "";
+  position: absolute; right: 18px; top: 50%;
+  transform: translateY(-50%) scale(0);
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(20,32,43,.85);
+  transition: transform .6s cubic-bezier(.65,0,.35,1), opacity .2s;
+  opacity: 0; z-index: -1;
+}
+.btn-primary:hover::before, .btn-primary.btn:hover::before {
+  opacity: 1; transform: translateY(-50%) scale(24);
+}
+.btn-primary:hover, .btn-primary.btn:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 20px 40px -16px rgba(20,32,43,.42);
+}
+.btn-primary:active, .btn-primary.btn:active {
+  transform: translateY(-1px) scale(.99);
+}
+
+/* 2) 缺陷卡片悬停：上浮 + 蓝选区描边 */
+.defect-card {
+  transition: transform .25s cubic-bezier(.2,.85,.25,1), box-shadow .25s, border-color .2s;
+  position: relative;
+}
+.defect-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 26px 54px -30px rgba(20,32,43,.42);
+  border-color: rgba(13,153,255,.45);
+}
+
+/* 3) 侧栏状态点呼吸（系统状态） */
+.status-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #27C06B;
+  box-shadow: 0 0 0 3px #27c06b25;
+  animation: omd-pulse 2.4s infinite;
+}
+@keyframes omd-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px #27c06b25; }
+  50% { box-shadow: 0 0 0 6px #27c06b10; }
+}
+
+/* 4) 版本卡 hover 上浮 */
+.accent-card, .side-card {
+  transition: transform .25s cubic-bezier(.2,.85,.25,1), box-shadow .25s;
+}
+.accent-card:hover, .side-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 26px 54px -30px rgba(20,32,43,.4);
+}
+
+/* 5) 上传区 hover：蓝描边 */
+.upload-zone:hover, .upload-zone.dragover {
+  border-color: var(--tool, #0D99FF);
+  background: rgba(13,153,255,.06);
+}
+
+/* 6) 导航项 hover：文字滑动替换 */
+.nav-item {
+  position: relative; overflow: hidden;
+}
+.nav-item::after {
+  content: attr(data-label);
+  position: absolute; left: 40px; top: 100%;
+  font-size: 14px; font-weight: 600;
+  white-space: nowrap;
+  transition: top .34s cubic-bezier(.5,0,.12,1);
+}
+.nav-item:hover::after { top: 50%; transform: translateY(-50%); }
+.nav-item:hover .nav-label { opacity: 0; transform: translateY(-128%); transition: all .34s cubic-bezier(.5,0,.12,1); }
+.nav-item .nav-label { transition: all .34s cubic-bezier(.5,0,.12,1); }
+
+/* 7) 选中反馈：蓝色选区描边（工具蓝） */
+.nav-item.active {
+  box-shadow: inset 3px 0 0 var(--tool, #0D99FF);
+}
+
+/* ============================================================
+   OhhMyDesign 布局重设计层（追加，DOM/JS 零改动）
+   三栏工作台：玻璃侧栏 + 卡片化主面板 + 步骤导航
+   ============================================================ */
+
+/* ── 三栏容器 ── */
+.app {
+  grid-template-columns: 260px 1fr 300px;
+  gap: 20px;
+  padding: 20px;
+  max-width: 1600px;
+  margin: 0 auto;
+  min-height: calc(100vh - 40px);
+}
+@media (max-width: 1200px) { .app { grid-template-columns: 240px 1fr; } }
+@media (max-width: 1024px) {
+  .app { grid-template-columns: 1fr; padding: 14px; gap: 14px; }
+  .right-sidebar { display: none; }
+}
+
+/* ── 侧栏：玻璃圆角卡 ── */
+.left-sidebar {
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.65);
+  padding: 24px 18px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 20px 50px -32px rgba(20,19,16,.32);
+}
+.user-profile {
+  padding: 10px 10px 18px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 14px;
+}
+.user-profile .avatar {
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--brand), var(--tool));
+  font-family: "Bricolage Grotesque", sans-serif;
+  font-weight: 800;
+}
+.nav-item {
+  border-radius: 12px;
+  margin-bottom: 4px;
+  transition: background .2s, transform .2s cubic-bezier(.2,.85,.25,1);
+}
+.nav-item:hover { background: rgba(241,246,250,.8); transform: translateX(2px); }
+.nav-item.active {
+  background: rgba(13,153,255,.1);
+  box-shadow: inset 3px 0 0 var(--tool, #0D99FF);
+}
+.nav-item.active .nav-label { color: var(--tool, #0D99FF); }
+.sidebar-footer {
+  margin-top: auto;
+  padding: 14px 10px 0;
+  border-top: 1px solid var(--line);
+  font-family: "Space Mono", Consolas, monospace;
+  font-size: 11px; letter-spacing: .06em;
+}
+
+/* ── 主面板：玻璃卡 + 圆角 ── */
+.main {
+  border-radius: 18px;
+  background: rgba(255,255,255,.6);
+  backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+  border: 1px solid rgba(255,255,255,.7);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 26px 54px -34px rgba(20,50,80,.5);
+  padding: 44px 52px 60px;
+}
+.panel { animation: omdPanelIn .4s cubic-bezier(.2,.7,.2,1); }
+@keyframes omdPanelIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+/* ── 右侧栏 ── */
+.right-sidebar {
+  border-radius: 18px;
+  padding: 24px 20px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+.accent-card {
+  border-radius: 16px;
+  box-shadow: 0 20px 50px -32px rgba(240,83,28,.55);
+}
+.side-card {
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.65);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 20px 50px -32px rgba(20,19,16,.32);
+}
+
+/* ── 上传区：工具蓝虚线 ── */
+.upload-zone {
+  border: 2px dashed rgba(13,153,255,.45);
+  border-radius: 16px;
+  transition: transform .2s ease, background .2s ease, border-color .2s ease;
+}
+.upload-zone:hover, .upload-zone.dragover {
+  transform: translateY(-2px);
+  border-color: var(--tool, #0D99FF);
+  background: rgba(13,153,255,.07);
+}
+.upload-zone .upload-title {
+  font-family: "Bricolage Grotesque", "PingFang SC", sans-serif;
+  font-size: 17px; font-weight: 700; letter-spacing: -.01em;
+}
+
+/* ── 缺陷卡片：玻璃 + hover 上浮 ── */
+.defect-card {
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.7);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 20px 50px -32px rgba(20,19,16,.32);
+}
+.dc-header { border-radius: 14px 14px 0 0; }
+.dc-index {
+  background: linear-gradient(135deg, var(--brand), var(--tool));
+  font-family: "Bricolage Grotesque", sans-serif;
+  font-weight: 800;
+}
+
+/* ── 按钮 ── */
+.btn-outline {
+  border-radius: 10px;
+  transition: transform .24s cubic-bezier(.2,.85,.25,1), box-shadow .24s, background .2s;
+}
+.btn-outline:hover { transform: translateY(-2px); box-shadow: 0 12px 26px -12px rgba(20,32,43,.3); }
+.btn-outline:active { transform: translateY(0) scale(.98); }
+
+/* ── 报告预览容器 ── */
+.report-body {
+  background: rgba(255,255,255,.75);
+  border: 1px solid rgba(255,255,255,.7);
+  border-radius: 16px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.7);
+}
+
+/* ── 移动端顶部导航 ── */
+@media (max-width: 1024px) {
+  .left-sidebar { position: static; height: auto; }
+  .nav-list { display: flex; gap: 6px; overflow-x: auto; }
+  .nav-item { flex: 1; min-width: 90px; justify-content: center; }
+  .nav-item .nav-icon { display: none; }
+  .user-profile { display: none; }
+  .main { padding: 28px 20px 40px; max-height: none; overflow: visible; }
+}
+
+/* ============================================================
+   OhhMyDesign 视觉统一层 v3（追加，最终优先级）
+   修复：令牌缺失导致渐变失效 / 上传区过白 / 文字层级不清
+   ============================================================ */
+:root {
+  --brand:      #F0531C;
+  --brand-deep: #D2410E;
+  --tool:       #0D99FF;
+  --ink:        #14202B;
+  --ink-soft:   #4A6173;
+  --ink-faint:  #8AA6B8;
+  --soft:       #F1F6FA;
+  --line:       rgba(20,32,43,.09);
+  --line-2:     rgba(20,32,43,.16);
+  --glass:      rgba(255,255,255,.38);
+  --glass-strong: rgba(255,255,255,.55);
+}
+
+/* ── 主面板：让天空透出来的玻璃 ── */
+.main {
+  background: rgba(255,255,255,.35);
+  backdrop-filter: blur(18px) saturate(1.15);
+  -webkit-backdrop-filter: blur(18px) saturate(1.15);
+  border: 1px solid rgba(255,255,255,.6);
+}
+
+/* ── 上传区：玻璃半透明 + 工具蓝虚线（不再是纯白） ── */
+.upload-zone {
+  background: rgba(255,255,255,.25);
+  backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+  border: 2px dashed rgba(13,153,255,.5);
+  border-radius: 18px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.55), 0 20px 50px -32px rgba(20,32,43,.35);
+}
+.upload-zone:hover, .upload-zone.dragover {
+  background: rgba(13,153,255,.09);
+  border-color: var(--tool);
+}
+.upload-zone .upload-icon { color: var(--tool); opacity: .9; }
+.upload-zone .upload-title { color: var(--ink); }
+.upload-zone .upload-hint { color: var(--ink-soft); }
+
+/* ── 文字三级层级（背景 vs 字体对比清晰） ── */
+.page-title  { color: var(--ink); }
+.page-sub    { color: var(--ink-soft); }
+.section-title { color: var(--ink); }
+.section-sub   { color: var(--ink-soft); }
+.side-card-text { color: var(--ink-soft); }
+.side-card-title { color: var(--ink); }
+.user-name    { color: var(--ink); }
+.user-handle  { color: var(--ink-soft); }
+.nav-label    { color: var(--ink-soft); }
+.empty-state-text { color: var(--ink); }
+.empty-state-hint  { color: var(--ink-faint); }
+
+/* ── 头像/序号渐变：修复 var(--brand) 失效 ── */
+.user-profile .avatar,
+.dc-index {
+  background: linear-gradient(135deg, #F0531C, #0D99FF);
+}
+
+/* ── 左侧栏玻璃 ── */
+.left-sidebar {
+  background: rgba(255,255,255,.45);
+  backdrop-filter: blur(16px) saturate(1.15);
+  -webkit-backdrop-filter: blur(16px) saturate(1.15);
+}
+
+/* ── 缺陷卡片：更透的玻璃 ── */
+.defect-card {
+  background: rgba(255,255,255,.5);
+  backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+}
+.dc-title { color: var(--ink); }
+.dc-meta  { color: var(--ink-soft); }
+.dc-kv-key { color: var(--ink-faint); }
+.dc-kv-val { color: var(--ink); }
+
+/* ── 版本卡：品牌橙主色 ── */
+.accent-card {
+  background: linear-gradient(160deg, #F0531C, #ff6a38);
+  border: none;
+}
+.accent-card-title { color: #fff; }
+.accent-card-sub   { color: rgba(255,255,255,.85); }
+.accent-card-eyebrow { color: rgba(255,255,255,.75); }
+.accent-card-hint  { color: rgba(255,255,255,.7); }
+.btn-card-outline {
+  border: 1.5px solid rgba(255,255,255,.7);
+  color: #fff;
+}
+.btn-card-outline:hover {
+  background: #fff;
+  color: var(--brand);
+}
+
+/* ── 按钮统一品牌橙 ── */
+.btn-primary, .btn-primary.btn {
+  background: var(--brand);
+  box-shadow: 0 12px 26px -12px rgba(240,83,28,.5);
+}
+.btn-primary:hover, .btn-primary.btn:hover {
+  background: var(--brand);
+}
+.btn-primary:active, .btn-primary.btn:active {
+  background: var(--brand-deep);
+}
+.btn-ghost, .btn-outline { color: var(--ink); border-color: var(--line-2); }
+.btn-ghost:hover, .btn-outline:hover { border-color: var(--brand); color: var(--brand); }
+
+/* ── 文件信息条 ── */
+.file-info { color: var(--ink-soft); }
+
+/* ── 报告预览区域 ── */
+.report-body {
+  background: rgba(255,255,255,.6);
+  backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+}
+
+/* ── 暗色模式统一 ── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --brand: #F0531C;
+    --tool: #0D99FF;
+    --ink: #E8EEF4;
+    --ink-soft: #A9BCCB;
+    --ink-faint: #6E8496;
+    --glass: rgba(22,30,38,.5);
+    --glass-strong: rgba(22,30,38,.65);
+  }
+  .main, .left-sidebar {
+    background: rgba(18,26,34,.55);
+    border-color: rgba(255,255,255,.12);
+  }
+  .upload-zone {
+    background: rgba(18,26,34,.4);
+    border-color: rgba(13,153,255,.5);
+  }
+  .defect-card, .report-body {
+    background: rgba(22,30,38,.6);
+  }
+}
+
+/* ============================================================
+   OhhMyDesign 视觉微调 v4（设计师审稿修正）
+   版本卡：实心橙 → 白玻璃 + 橙色顶部装饰条 + 橙色标题
+   ============================================================ */
+.accent-card {
+  background: rgba(255,255,255,.6);
+  backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+  border: 1px solid rgba(255,255,255,.7);
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 20px 50px -32px rgba(20,19,16,.32);
+}
+/* 顶部橙色装饰条 */
+.accent-card::before {
+  content: "";
+  position: absolute; top: 0; left: 0; right: 0; height: 4px;
+  background: linear-gradient(90deg, #F0531C, #ff8a5c);
+  border-radius: 16px 16px 0 0;
+}
+.accent-card-eyebrow { color: var(--ink-faint); }
+.accent-card-title  { color: var(--brand); }
+.accent-card-sub    { color: var(--ink-soft); }
+.accent-card-hint   { color: var(--ink-faint); }
+.btn-card-outline {
+  border: 1.5px solid rgba(240,83,28,.5);
+  color: var(--brand);
+  background: transparent;
+  transition: all .2s;
+}
+.btn-card-outline:hover {
+  background: var(--brand);
+  color: #fff;
+  border-color: var(--brand);
+}
+@media (prefers-color-scheme: dark) {
+  .accent-card { background: rgba(22,30,38,.65); border-color: rgba(255,255,255,.12); }
+}
+
+/* ============================================================
+   OhhMyDesign 设计师审稿修复层 v5
+   ①选中态橙蓝打架 ②按钮圆角 ③标题字体 ④eyebrow mono ⑤残色
+   ============================================================ */
+/* ① nav 选中态：橙轨 → 工具蓝（消除双色打架） */
+.nav-item.active::before,
+.nav-item.active .nav-item-bar {
+  background: var(--tool, #0D99FF);
+}
+
+/* ② 主按钮圆角 8px → 10px（规范操作按钮） */
+.btn-primary, .btn-primary.btn, .btn-outline, .btn-ghost, .btn-card-outline {
+  border-radius: 10px;
+}
+
+/* ③ 标题族换 Bricolage Grotesque（display 字体） */
+.page-title,
+.section-title,
+.side-card-title,
+.export-ready h3,
+.empty-state-text {
+  font-family: "Bricolage Grotesque", "PingFang SC", "Microsoft YaHei", sans-serif;
+  letter-spacing: -.01em;
+}
+
+/* ④ eyebrow 换 Space Mono（规范工具标签层） */
+.accent-card-eyebrow,
+.accent-card-hint {
+  font-family: "Space Mono", Consolas, monospace;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+/* ⑤ 残留旧橙 rgba(233,78,59) → 品牌橙 rgba(240,83,28) */
+.file-info,
+.status-pill.run {
+  border-color: rgba(240,83,28,.15);
+  color: var(--brand, #F0531C);
+}
+
+/* ⑥ 1200px 断点：右栏隐藏避免落行 */
+@media (max-width: 1200px) {
+  .right-sidebar { display: none; }
+}
+
+/* ⑦ ghost 按钮：墨蓝描边（规范 ghost） */
+.btn-ghost {
+  border: 1.6px solid var(--ink, #14202B);
+  background: transparent;
+  color: var(--ink, #14202B);
+}
+.btn-ghost:hover {
+  background: var(--ink, #14202B);
+  color: #fff;
+  border-color: var(--ink, #14202B);
+}
+
+/* ============================================================
+   OhhMyDesign 视觉修复 v6（用户实拍反馈）
+   ①中间面板叠白 → 玻璃透出天空 ②左侧导航对比度修复
+   ============================================================ */
+/* ① 去掉 .panel 叠白：内容区透明，让 .main 玻璃直接透出天空蓝 */
+.panel {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+}
+/* 主面板玻璃更通透（0.35 → 0.28），天空蓝渐变明显透出 */
+.main {
+  background: rgba(255,255,255,.28);
+}
+
+/* ② 左侧导航对比度：默认深墨蓝字，active 深字+浅蓝底+蓝轨 */
+.nav-label {
+  color: var(--ink, #14202B);
+  font-weight: 500;
+}
+.nav-item.active {
+  background: rgba(13,153,255,.14);
+  box-shadow: inset 3px 0 0 var(--tool, #0D99FF);
+}
+.nav-item.active .nav-label {
+  color: var(--ink, #14202B);
+  font-weight: 700;
+}
+.nav-item.active .nav-icon {
+  color: var(--tool, #0D99FF);
+}
+.nav-item:hover .nav-label {
+  color: var(--ink, #14202B);
+}
+
+/* ③ 侧栏玻璃稍提不透明度，保证文字可读 */
+.left-sidebar {
+  background: rgba(255,255,255,.55);
+}
+
+/* ④ 暗色模式同步 */
+@media (prefers-color-scheme: dark) {
+  .panel { background: transparent; }
+  .main { background: rgba(18,26,34,.45); }
+  .nav-label { color: var(--ink, #E8EEF4); }
+  .nav-item.active { background: rgba(13,153,255,.18); }
+  .nav-item.active .nav-label { color: #fff; }
+}
+
+/* ============================================================
+   OhhMyDesign 视觉修复 v7（用户实拍反馈）
+   同一排次要按钮视觉统一：outline 与 ghost 同款墨蓝描边
+   ============================================================ */
+.btn-outline {
+  border: 1.6px solid var(--ink, #14202B);
+  background: transparent;
+  color: var(--ink, #14202B);
+}
+.btn-outline:hover {
+  background: var(--ink, #14202B);
+  color: #fff;
+  border-color: var(--ink, #14202B);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px -12px rgba(20,32,43,.3);
+}
+.btn-outline:active {
+  transform: translateY(0) scale(.98);
+}
+
+/* ============================================================
+   OhhMyDesign 视觉修复 v8（用户实拍反馈）
+   重置按钮尺寸：.btn-ghost 补回 padding（基座 padding:0 残留）
+   ============================================================ */
+.btn-ghost {
+  padding: 8px 16px;
+  min-height: 36px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* ============================================================
+   OhhMyDesign 视觉修复 v9（用户要求：左侧状态栏复刻胶囊导航）
+   白色胶囊容器 + 胶囊导航项 + 品牌橙选中态 + 深色 CTA 项
+   ============================================================ */
+/* ── 左侧栏容器：白色大圆角胶囊容器（参考 .pill） ── */
+.left-sidebar {
+  background: rgba(255,255,255,.88);
+  border: 1px solid rgba(20,32,43,.13);
+  border-radius: 24px;
+  box-shadow: 0 12px 32px -18px rgba(20,19,16,.4);
+  backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+  padding: 24px 16px;
+}
+/* 用户区：顶部对齐，分割线轻 */
+.user-profile {
+  padding: 6px 10px 16px;
+  border-bottom: 1px solid rgba(20,32,43,.08);
+}
+.user-profile .avatar {
+  background: linear-gradient(135deg, #F0531C, #0D99FF);
+  border-radius: 12px;
+  font-family: "Bricolage Grotesque", sans-serif;
+  font-weight: 800;
+}
+.user-name { font-weight: 600; }
+.user-handle { color: var(--ink-faint); font-size: 12px; }
+
+/* ── 导航项：胶囊（999px），参考 .nav-pill a ── */
+.nav-item {
+  border-radius: 999px;
+  padding: 10px 14px;
+  margin-bottom: 6px;
+  background: transparent;
+  transition: background .2s ease, color .2s ease, transform .2s cubic-bezier(.2,.85,.25,1);
+}
+/* hover：浅冷底 --soft */
+.nav-item:hover {
+  background: #F1F6FA;
+  transform: none;
+}
+.nav-item:hover .nav-label { color: var(--ink, #14202B); }
+
+/* 当前选中项：品牌橙文字 + 浅橙底（参考 About 高亮） */
+.nav-item.active {
+  background: rgba(240,83,28,.09);
+  box-shadow: none;
+}
+.nav-item.active .nav-label {
+  color: var(--brand, #F0531C);
+  font-weight: 700;
+}
+.nav-item.active .nav-icon { color: var(--brand, #F0531C); }
+
+/* 最后一项（导出文件）= CTA：深墨蓝底白字（参考 Contact） */
+.nav-item[data-step="3"] {
+  background: #14202B;
+  color: #fff;
+  margin-top: 10px;
+}
+.nav-item[data-step="3"] .nav-label { color: #fff; }
+.nav-item[data-step="3"] .nav-icon { color: #fff; }
+.nav-item[data-step="3"]:hover { background: #14202B; }
+/* CTA 项激活（导出步骤）：品牌橙 */
+.nav-item[data-step="3"].active {
+  background: var(--brand, #F0531C);
+}
+.nav-item[data-step="3"].active .nav-label,
+.nav-item[data-step="3"].active .nav-icon { color: #fff; }
+
+/* ── 底部状态区 ── */
+.sidebar-footer {
+  border-top: 1px solid rgba(20,32,43,.08);
+  padding: 14px 10px 4px;
+  font-family: "Space Mono", Consolas, monospace;
+  font-size: 11px;
+  letter-spacing: .06em;
+  color: var(--ink-faint);
+}
+.sidebar-footer .status-dot {
+  background: #27C06B;
+  box-shadow: 0 0 0 3px #27c06b25;
+  animation: omd-pulse 2.4s infinite;
+}
+
+/* ── 暗色模式 ── */
+@media (prefers-color-scheme: dark) {
+  .left-sidebar {
+    background: rgba(22,30,38,.9);
+    border-color: rgba(255,255,255,.12);
+  }
+  .nav-item:hover { background: rgba(241,246,250,.08); }
+  .nav-item[data-step="3"] { background: #E8EEF4; }
+  .nav-item[data-step="3"] .nav-label,
+  .nav-item[data-step="3"] .nav-icon { color: #14202B; }
+  .nav-item[data-step="3"]:hover { background: #E8EEF4; }
+}
+
+/* ============================================================
+   OhhMyDesign 视觉修复 v10（用户要求）
+   ①选中态 → 黑底白字（黑框黑底白字） ②系统状态移至右侧简化 pill
+   ============================================================ */
+/* ── ① 选中态：黑底白字（覆盖 v9 的品牌橙选中） ── */
+.nav-item.active,
+.nav-item[data-step="3"].active {
+  background: #1A1A1A;
+  box-shadow: inset 0 0 0 1.5px #000;
+  border: none;
+}
+.nav-item.active .nav-label,
+.nav-item[data-step="3"].active .nav-label {
+  color: #fff;
+  font-weight: 700;
+}
+.nav-item.active .nav-icon,
+.nav-item[data-step="3"].active .nav-icon {
+  color: #fff;
+}
+/* 已完成步骤（done）：保持墨蓝文字 + 绿勾（JS 加的 .done class 不受影响） */
+.nav-item.done .nav-label { color: var(--ink-soft); }
+
+/* CTA 项常态恢复墨蓝底（与黑选中区分） */
+.nav-item[data-step="3"] {
+  background: #14202B;
+}
+.nav-item[data-step="3"]:hover { background: #14202B; }
+
+/* ── ② 右侧系统状态 pill（简化） ── */
+.status-pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(255,255,255,.65);
+  backdrop-filter: blur(12px) saturate(1.1);
+  -webkit-backdrop-filter: blur(12px) saturate(1.1);
+  border: 1px solid rgba(255,255,255,.75);
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-family: "Space Mono", Consolas, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  color: var(--ink-soft);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 20px 50px -32px rgba(20,19,16,.32);
+}
+.status-pill .status-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #27C06B;
+  box-shadow: 0 0 0 3px #27c06b25;
+  animation: omd-pulse 2.4s infinite;
+  flex-shrink: 0;
+}
+/* 右侧栏顶部对齐 */
+.right-sidebar {
+  gap: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  .nav-item.active,
+  .nav-item[data-step="3"].active {
+    background: #E8EEF4;
+    box-shadow: inset 0 0 0 1.5px #fff;
+  }
+  .nav-item.active .nav-label,
+  .nav-item.active .nav-icon,
+  .nav-item[data-step="3"].active .nav-label,
+  .nav-item[data-step="3"].active .nav-icon { color: #14202B; }
+  .status-pill { background: rgba(22,30,38,.7); border-color: rgba(255,255,255,.12); color: var(--ink-soft); }
+}
+
+/* ============================================================
+   OhhMyDesign 视觉修复 v11（用户要求）
+   ①状态 pill 固定右下角 ②统一圆角 ③导出项去底色 ④左侧栏压缩
+   ============================================================ */
+/* ── ① 系统状态：固定画面右下角 ── */
+.status-pill-fixed {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255,255,255,.72);
+  backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+  border: 1px solid rgba(255,255,255,.8);
+  border-radius: 999px;
+  padding: 9px 18px;
+  font-family: "Space Mono", Consolas, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  color: var(--ink-soft);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.7), 0 20px 50px -32px rgba(20,19,16,.4);
+  transition: transform .2s cubic-bezier(.2,.85,.25,1);
+}
+.status-pill-fixed:hover { transform: translateY(-2px); }
+.status-pill-fixed .status-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #27C06B;
+  box-shadow: 0 0 0 3px #27c06b25;
+  animation: omd-pulse 2.4s infinite;
+  flex-shrink: 0;
+}
+
+/* ── ② 统一画面圆角：全站 18px ── */
+.left-sidebar, .main, .accent-card, .side-card, .status-pill-fixed {
+  border-radius: 18px;
+}
+.accent-card::before { border-radius: 18px 18px 0 0; }
+.defect-card, .upload-zone, .report-body, .panel, .empty-state {
+  border-radius: 14px;
+}
+
+/* ── ③ 「导出文件」常规状态：与其他选项一致（无深色底） ── */
+.nav-item[data-step="3"] {
+  background: transparent;
+  color: var(--ink-soft);
+  margin-top: 0;
+}
+.nav-item[data-step="3"] .nav-label { color: var(--ink-soft); }
+.nav-item[data-step="3"] .nav-icon { color: var(--ink-soft); }
+.nav-item[data-step="3"]:hover { background: #F1F6FA; }
+.nav-item[data-step="3"]:hover .nav-label,
+.nav-item[data-step="3"]:hover .nav-icon { color: var(--ink, #14202B); }
+/* 选中态仍为黑底白字 */
+.nav-item[data-step="3"].active {
+  background: #1A1A1A;
+  box-shadow: inset 0 0 0 1.5px #000;
+}
+.nav-item[data-step="3"].active .nav-label,
+.nav-item[data-step="3"].active .nav-icon { color: #fff; }
+
+/* ── ④ 左侧栏压缩：减小上下间距与空白 ── */
+.left-sidebar {
+  padding: 16px 14px;
+}
+.user-profile {
+  padding: 4px 8px 12px;
+  margin-bottom: 8px;
+}
+.user-profile .avatar { width: 34px; height: 34px; font-size: 14px; }
+.nav-list { gap: 2px; }
+.nav-item {
+  padding: 8px 12px;
+  margin-bottom: 2px;
+}
+.nav-item .nav-icon svg { width: 16px; height: 16px; }
+
+/* 暗色模式适配 */
+@media (prefers-color-scheme: dark) {
+  .status-pill-fixed {
+    background: rgba(22,30,38,.8);
+    border-color: rgba(255,255,255,.14);
+    color: var(--ink-soft);
+  }
+  .nav-item[data-step="3"]:hover { background: rgba(241,246,250,.08); }
+}
+
+/* ============================================================
+   OhhMyDesign 大厂原则修复层 v12（设计师 Review 2）
+   P0 渲染错误/间距网格  P1 对比度 AA/去嵌套模糊  P2 微交互/对齐
+   ============================================================ */
+:root {
+  --ink-faint: #60788B;          /* 弱文字提深：2.5:1 → 4.6:1 AA */
+  --brand-cta: #D2410E;          /* 按钮橙提深：白字 4.65:1 AA */
+  --shadow-1:  0 12px 32px -18px rgba(20,19,16,.35);
+  --shadow-2:  0 26px 54px -30px rgba(20,32,43,.42);
+  --shadow-cta: 0 12px 26px -12px rgba(240,83,28,.5);
+}
+
+/* ── P0-1 渲染错误修复 ── */
+/* 完成态对勾（基座 '?' → '✓'） */
+.nav-item.done .nav-label::after { content: "✓"; margin-left: 3px; }
+/* 死代码：左轨条被 overflow 裁掉 → 清除 */
+.nav-item.active::before { display: none; }
+
+/* ── P0-2 间距落回 4/8pt 网格 + 触控目标 ── */
+.nav-list { gap: 4px; }
+.nav-item { margin-bottom: 0; }
+.section-head { margin-bottom: 16px; }
+.actions { gap: 12px; }
+.dc-header { padding: 16px 20px; }
+.dc-body.expanded { padding: 0 20px 20px; }
+.accent-card { padding: 24px; }
+.right-sidebar { gap: 16px; }
+.left-sidebar { padding: 24px 16px; }
+.status-pill-fixed { padding: 8px 16px; }
+.btn { min-height: 40px; padding: 0 18px; }
+.btn-lg { min-height: 48px; padding: 0 24px; }
+.btn-card-outline { min-height: 40px; }
+
+/* ── P1-3 对比度 AA ── */
+.page-title { font-size: 32px; letter-spacing: -.02em; }
+.page-sub { font-size: 15px; }
+.section-title { font-size: 16px; }
+.btn-primary, .btn-primary.btn {
+  background: var(--brand-cta, #D2410E);
+  box-shadow: var(--shadow-cta);
+}
+.btn-primary:hover, .btn-primary.btn:hover { background: #B93A0C; }
+.btn-primary:active, .btn-primary.btn:active { background: #9C3007; }
+.file-info, .status-pill.run { color: var(--brand-deep, #D2410E); }
+
+/* ── P1-4 消除嵌套玻璃模糊（子卡去 blur，白度提至 .72） ── */
+.main .upload-zone,
+.main .defect-card,
+.main .report-body,
+.main .empty-state {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: rgba(255,255,255,.72);
+}
+
+/* ── P2-5 微交互 + 对齐 + 阴影令牌 ── */
+/* 三栏首行基线对齐 44px */
+.main { padding: 44px 48px 56px; }
+/* 统一白描边语言 */
+.left-sidebar { border-color: rgba(255,255,255,.65); }
+.main, .defect-card, .side-card { box-shadow: var(--shadow-1); }
+.defect-card:hover, .accent-card:hover, .side-card:hover { box-shadow: var(--shadow-2); }
+/* 焦点统一工具蓝 */
+.nav-item:focus-visible {
+  background: rgba(13,153,255,.1);
+  outline: 2px solid var(--tool, #0D99FF);
+  outline-offset: -2px;
+}
+/* 按压反馈 */
+.nav-item:active { transform: scale(.97); }
+/* 缺陷卡 stagger 入场 */
+.defect-card { animation: omdCardIn .45s cubic-bezier(.2,.7,.2,1) backwards; }
+.defect-card:nth-child(2) { animation-delay: .05s; }
+.defect-card:nth-child(3) { animation-delay: .10s; }
+.defect-card:nth-child(4) { animation-delay: .15s; }
+.defect-card:nth-child(5) { animation-delay: .20s; }
+.defect-card:nth-child(6) { animation-delay: .25s; }
+@keyframes omdCardIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+/* 拖拽中图标浮动 */
+.upload-zone.dragover .upload-icon { animation: omdIconBob .5s ease infinite alternate; }
+@keyframes omdIconBob { from { transform: translateY(0); } to { transform: translateY(-4px); } }
+
+/* ── 暗色与 reduced-motion 兼容 ── */
+@media (prefers-color-scheme: dark) {
+  .main .upload-zone, .main .defect-card, .main .report-body, .main .empty-state {
+    background: rgba(22,30,38,.78);
+  }
+  .left-sidebar { border-color: rgba(255,255,255,.14); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .defect-card { animation: none; }
+  .upload-zone.dragover .upload-icon { animation: none; }
+}
+
+/* ============================================================
+   OhhMyDesign 布局 v13（用户要求：导航横置底部悬浮 dock）
+   删除左侧栏 → 两栏布局 + 底部居中横板悬浮导航
+   ============================================================ */
+/* ── 两栏布局（原 260px 左栏已删除） ── */
+.app {
+  grid-template-columns: 1fr 300px;
+}
+@media (max-width: 1200px) { .app { grid-template-columns: 1fr; } }
+
+/* ── 底部居中悬浮导航 dock ── */
+.nav-dock {
+  position: fixed;
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 950;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px;
+  background: rgba(255,255,255,.82);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  border: 1px solid rgba(255,255,255,.8);
+  border-radius: 999px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.7), 0 20px 50px -32px rgba(20,19,16,.45);
+}
+.nav-dock .nav-item {
+  border-radius: 999px;
+  padding: 9px 18px;
+  margin: 0;
+  white-space: nowrap;
+}
+.nav-dock .nav-item .nav-icon svg { width: 16px; height: 16px; }
+/* 选中态：黑底白字（保留原样式） */
+.nav-dock .nav-item.active {
+  background: #1A1A1A;
+  box-shadow: inset 0 0 0 1.5px #000;
+}
+.nav-dock .nav-item.active .nav-label,
+.nav-dock .nav-item.active .nav-icon { color: #fff; font-weight: 700; }
+/* 完成态对勾 */
+.nav-dock .nav-item.done .nav-label::after { content: "✓"; margin-left: 3px; }
+.nav-dock .nav-item.done .nav-label { color: var(--ink-soft); }
+/* hover/active 反馈 */
+.nav-dock .nav-item:hover { background: #F1F6FA; }
+.nav-dock .nav-item:active { transform: scale(.96); }
+.nav-dock .nav-item:focus-visible {
+  background: rgba(13,153,255,.1);
+  outline: 2px solid var(--tool, #0D99FF);
+  outline-offset: -2px;
+}
+
+/* ── 主面板底部留白：避免被 dock 遮挡 ── */
+.main {
+  padding-bottom: 96px;
+}
+
+/* ── 右侧栏用户卡（原左侧栏用户区迁入） ── */
+.right-sidebar .user-profile {
+  background: rgba(255,255,255,.6);
+  backdrop-filter: blur(12px) saturate(1.1);
+  -webkit-backdrop-filter: blur(12px) saturate(1.1);
+  border: 1px solid rgba(255,255,255,.75);
+  border-radius: 18px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 20px 50px -32px rgba(20,19,16,.32);
+}
+.right-sidebar .user-profile .avatar {
+  width: 42px; height: 42px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #F0531C, #0D99FF);
+  color: #fff;
+  font-family: "Bricolage Grotesque", sans-serif;
+  font-weight: 800;
+  font-size: 18px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.right-sidebar .user-profile .user-name { color: var(--ink); font-weight: 700; font-size: 14px; }
+.right-sidebar .user-profile .user-handle { color: var(--ink-faint); font-size: 12px; }
+
+/* 移动端：dock 横向可滚动，压缩项距 */
+@media (max-width: 768px) {
+  .nav-dock {
+    bottom: 14px;
+    max-width: calc(100vw - 20px);
+    overflow-x: auto;
+    gap: 2px;
+  }
+  .nav-dock .nav-item { padding: 8px 12px; }
+  .main { padding-bottom: 84px; }
+}
+
+/* 暗色模式 */
+@media (prefers-color-scheme: dark) {
+  .nav-dock { background: rgba(22,30,38,.85); border-color: rgba(255,255,255,.14); }
+  .nav-dock .nav-item:hover { background: rgba(241,246,250,.08); }
+  .nav-dock .nav-item.active { background: #E8EEF4; box-shadow: inset 0 0 0 1.5px #fff; }
+  .nav-dock .nav-item.active .nav-label,
+  .nav-dock .nav-item.active .nav-icon { color: #14202B; }
+  .right-sidebar .user-profile { background: rgba(22,30,38,.75); border-color: rgba(255,255,255,.12); }
+}
+
+/* ============================================================
+   OhhMyDesign 布局 v14（用户要求）
+   ①dock 强制横向排布 ②系统状态移入使用提示卡片
+   ============================================================ */
+/* ── ① 横向排布（覆盖基座 .nav-list column） ── */
+.nav-list.nav-dock {
+  flex-direction: row;
+  display: flex;
+}
+.nav-dock .nav-item {
+  flex-direction: row;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+.nav-dock .nav-item .nav-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── ② 使用提示卡片内的系统状态 ── */
+.side-card .status-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 8px 14px;
+  background: rgba(255,255,255,.55);
+  backdrop-filter: blur(10px) saturate(1.1);
+  -webkit-backdrop-filter: blur(10px) saturate(1.1);
+  border: 1px solid rgba(255,255,255,.75);
+  border-radius: 999px;
+  font-family: "Space Mono", Consolas, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  color: var(--ink-soft);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.5);
+}
+.side-card .status-pill .status-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #27C06B;
+  box-shadow: 0 0 0 3px #27c06b25;
+  animation: omd-pulse 2.4s infinite;
+  flex-shrink: 0;
+}
+@media (prefers-color-scheme: dark) {
+  .side-card .status-pill { background: rgba(22,30,38,.6); border-color: rgba(255,255,255,.12); }
+}
+
+/* ============================================================
+   OhhMyDesign 布局 v15（用户要求）
+   ①顶端两侧框对齐（右栏与主面板同起点同内容基线）
+   ②所有框底色统一（同一玻璃令牌）
+   ============================================================ */
+/* ── 统一玻璃底色令牌 ── */
+:root {
+  --glass-box: rgba(255,255,255,.45);   /* 大框统一底色 */
+}
+/* ── 主面板与右侧栏：同底色、同描边、同阴影、同圆角 ── */
+.main,
+.right-sidebar {
+  background: var(--glass-box);
+  border: 1px solid rgba(255,255,255,.65);
+  border-radius: 18px;
+  box-shadow: var(--shadow-1);
+}
+/* 右侧栏内容基线：顶部 44px 与主面板页标题对齐 */
+.right-sidebar {
+  padding: 44px 24px 24px;
+}
+/* ── 右栏内部卡透明化：避免嵌套玻璃，统一框内一体感 ── */
+.right-sidebar .user-profile,
+.right-sidebar .accent-card,
+.right-sidebar .side-card {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+  border: none;
+  padding-left: 0;
+  padding-right: 0;
+}
+.right-sidebar .user-profile { padding: 0 0 20px; }
+.right-sidebar .accent-card { padding: 0 0 24px; }
+.right-sidebar .side-card { padding: 0 0 20px; }
+/* 版本卡橙顶条保留（强调语义） */
+.right-sidebar .accent-card::before { height: 4px; }
+/* 使用提示内状态 pill 保持可辨识 */
+.right-sidebar .side-card .status-pill {
+  background: rgba(255,255,255,.55);
+}
+/* ── 暗色模式 ── */
+@media (prefers-color-scheme: dark) {
+  :root { --glass-box: rgba(22,30,38,.55); }
+  .main, .right-sidebar { border-color: rgba(255,255,255,.12); }
+  .right-sidebar .side-card .status-pill { background: rgba(22,30,38,.6); }
+}
+
+/* ============================================================
+   OhhMyDesign 微交互 v16（用户要求：hover 参考样式）
+   悬停 → 白底 + 品牌橙文字/图标（参考图 About 悬停态）
+   ============================================================ */
+.nav-dock .nav-item:hover {
+  background: #FFFFFF;
+  box-shadow: 0 6px 16px -8px rgba(20,19,16,.3);
+}
+.nav-dock .nav-item:hover .nav-label {
+  color: var(--brand, #F0531C);
+  font-weight: 700;
+}
+.nav-dock .nav-item:hover .nav-icon {
+  color: var(--brand, #F0531C);
+}
+/* 完成项 hover 时对勾也转橙 */
+.nav-dock .nav-item.done:hover .nav-label::after { color: var(--brand, #F0531C); }
+/* 暗色模式：深底浅字 hover 转橙 */
+@media (prefers-color-scheme: dark) {
+  .nav-dock .nav-item:hover { background: rgba(232,238,244,.12); }
+  .nav-dock .nav-item:hover .nav-label,
+  .nav-dock .nav-item:hover .nav-icon { color: #ff8a5c; }
+}
+
+/* ============================================================
+   OhhMyDesign 微交互 v17（修复 hover 文字不变色）
+   覆盖基座「文字滑动替换」残留：hover 时文字保持可见
+   ============================================================ */
+.nav-dock .nav-item:hover .nav-label {
+  opacity: 1;
+  transform: none;
+  color: var(--brand, #F0531C);
+  font-weight: 700;
+}
+.nav-dock .nav-item:hover .nav-icon {
+  color: var(--brand, #F0531C);
+}
+/* 完成项 hover：文字转橙且可见 */
+.nav-dock .nav-item.done:hover .nav-label {
+  opacity: 1;
+  transform: none;
+  color: var(--brand, #F0531C);
+}
+.nav-dock .nav-item.done:hover .nav-label::after { color: var(--brand, #F0531C); }
+/* 暗色模式 */
+@media (prefers-color-scheme: dark) {
+  .nav-dock .nav-item:hover .nav-label {
+    opacity: 1;
+    transform: none;
+    color: #ff8a5c;
+  }
+}
+
+/* ============================================================
+   OhhMyDesign 布局 v18（修复版本卡布局错误）
+   版本卡恢复可见卡片形态（右栏内唯一卡中卡，保留橙顶条语义）
+   ============================================================ */
+.right-sidebar .accent-card {
+  background: rgba(255,255,255,.6);
+  backdrop-filter: blur(12px) saturate(1.1);
+  -webkit-backdrop-filter: blur(12px) saturate(1.1);
+  border: 1px solid rgba(255,255,255,.75);
+  border-radius: 18px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 20px 50px -32px rgba(20,19,16,.32);
+  padding: 24px 22px 22px;
+  position: relative;
+  overflow: hidden;
+}
+/* 橙顶条完整显示（在卡片内顶部，不横穿右栏） */
+.right-sidebar .accent-card::before {
+  content: "";
+  position: absolute; top: 0; left: 0; right: 0; height: 4px;
+  background: linear-gradient(90deg, #F0531C, #ff8a5c);
+  border-radius: 18px 18px 0 0;
+}
+/* 文字颜色恢复可读 */
+.right-sidebar .accent-card .accent-card-eyebrow { color: var(--ink-faint); }
+.right-sidebar .accent-card .accent-card-title  { color: var(--brand, #F0531C); }
+.right-sidebar .accent-card .accent-card-sub    { color: var(--ink-soft); }
+.right-sidebar .accent-card .accent-card-hint   { color: var(--ink-faint); }
+/* 刷新按钮：卡内全宽墨蓝描边，hover 墨蓝填充 */
+.right-sidebar .accent-card .btn-card-outline {
+  width: 100%;
+  border: 1.6px solid var(--ink, #14202B);
+  color: var(--ink, #14202B);
+  background: transparent;
+  border-radius: 10px;
+  min-height: 40px;
+  font-weight: 600;
+}
+.right-sidebar .accent-card .btn-card-outline:hover {
+  background: var(--ink, #14202B);
+  color: #fff;
+  border-color: var(--ink, #14202B);
+}
+/* 暗色模式 */
+@media (prefers-color-scheme: dark) {
+  .right-sidebar .accent-card {
+    background: rgba(22,30,38,.7);
+    border-color: rgba(255,255,255,.14);
+  }
+  .right-sidebar .accent-card .btn-card-outline {
+    border-color: #E8EEF4;
+    color: #E8EEF4;
+  }
+  .right-sidebar .accent-card .btn-card-outline:hover {
+    background: #E8EEF4;
+    color: #14202B;
+  }
+}
