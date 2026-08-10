@@ -525,6 +525,333 @@
     header.app h1 { font-size: 24px; }
     .file-row .meta { font-size: 11px; }
   }
+
+/* ============================================================
+   OhhMyDesign 换肤层（追加，不改原逻辑）
+   天空蓝渐变底 + 白玻璃浮层 + 墨蓝文字 + 品牌橙 CTA + 工具蓝
+   ============================================================ */
+:root {
+  --ink: #14202B;
+  --ink-2: #4A6173;
+  --print: #0D99FF;
+  --print-soft: rgba(13,153,255,.12);
+  --stamp: #D2410E;
+  --blue: #F0531C;
+  --blue-2: #ff6a38;
+  --green: #27C06B;
+  --orange: #E4A11B;
+  --red: #D2410E;
+  --hairline: rgba(20,32,43,.09);
+  --hairline-strong: rgba(20,32,43,.2);
+  --glass-shadow: 0 20px 50px -32px rgba(20,19,16,.32);
+  --surface: rgba(255,255,255,.72);
+  --surface-strong: rgba(255,255,255,.9);
+  --surface-row: rgba(255,255,255,.66);
+  --surface-field: rgba(255,255,255,.88);
+  --page-a: #e6f1fb;
+  --page-b: #eaf4fb;
+  --page-c: #e2eefa;
+  --r-card: 18px;
+  --r-pill: 999px;
+  --font-display: "Bricolage Grotesque", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-mono: "Space Mono", "JetBrains Mono", Consolas, monospace;
+}
+body {
+  background:
+    radial-gradient(130% 95% at 82% -18%, rgba(255,255,255,.7) 0%, rgba(255,255,255,0) 40%),
+    radial-gradient(120% 80% at 10% 118%, rgba(196,230,255,.75) 0%, rgba(196,230,255,0) 52%),
+    linear-gradient(180deg,#3E97E2 0%,#5EAEEA 40%,#86C4EF 76%,#ACD8F4 100%);
+  background-attachment: fixed;
+}
+/* 主按钮品牌橙（生成合并 PDF） */
+.btn.primary {
+  background: linear-gradient(135deg, var(--blue) 0%, var(--blue-2) 100%);
+  box-shadow: 0 12px 26px -12px rgba(240,83,28,.5);
+  transition: transform .24s cubic-bezier(.2,.85,.25,1), box-shadow .24s;
+}
+.btn.primary:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 20px 40px -16px rgba(20,32,43,.42);
+}
+.btn.primary:active {
+  transform: translateY(-1px) scale(.99);
+  background: var(--brand-deep, #D2410E);
+}
+/* 玻璃卡加深 */
+.glass, .card {
+  box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255,255,255,.7);
+}
+/* 拖拽区虚线工具蓝 */
+.drop {
+  border-color: rgba(13,153,255,.5);
+}
+.drop:hover { border-color: var(--print); background: var(--print-soft); }
+.drop.drag { border-color: var(--print); background: var(--print-soft); }
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #E8EEF4;
+    --ink-2: #A9BCCB;
+    --print: #6FA8D4;
+    --stamp: #D97A63;
+    --blue: #F0531C;
+    --blue-2: #ff6a38;
+    --surface: rgba(22,30,38,.72);
+    --surface-strong: rgba(22,30,38,.92);
+    --surface-row: rgba(255,255,255,.06);
+    --surface-field: rgba(255,255,255,.09);
+    --page-a: rgba(47,111,167,.16);
+    --page-b: #101820;
+    --page-c: #15202b;
+  }
+  body {
+    background: linear-gradient(180deg,#0F2436 0%,#17354F 40%,#1E4460 100%);
+    background-attachment: fixed;
+  }
+}
+
+/* ============================================================
+   OhhMyDesign 交互特效层（追加）
+   按钮扫光 / 卡片悬停上浮 / 行悬浮 / 印章式反馈
+   ============================================================ */
+/* 1) 主按钮 ink 圆扫光（生成合并 PDF / 下载） */
+.btn.primary {
+  position: relative; overflow: hidden; isolation: isolate;
+}
+.btn.primary::before {
+  content: "";
+  position: absolute; right: 18px; top: 50%;
+  transform: translateY(-50%) scale(0);
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(20,32,43,.85);
+  transition: transform .6s cubic-bezier(.65,0,.35,1), opacity .2s;
+  opacity: 0; z-index: -1;
+}
+.btn.primary:hover::before { opacity: 1; transform: translateY(-50%) scale(24); }
+.btn.primary:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 20px 40px -16px rgba(20,32,43,.42);
+}
+.btn.primary:active { transform: translateY(-1px) scale(.99); }
+
+/* 2) 卡片悬停：上浮 + 柔阴影 */
+.card, .glass {
+  transition: transform .25s cubic-bezier(.2,.85,.25,1), box-shadow .25s;
+}
+.card:hover, .glass:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 26px 54px -30px rgba(20,32,43,.42), inset 0 1px 0 rgba(255,255,255,.7);
+}
+
+/* 3) 文件行悬浮：蓝描边 + 轻微左移（Figma 选中感） */
+.file-row:hover {
+  border-left-color: var(--print, #0D99FF);
+  box-shadow: 0 6px 18px rgba(13,153,255,.12);
+}
+
+/* 4) 拖拽区 hover：工具蓝虚线 + 淡蓝底 */
+.drop { transition: transform .2s ease, background .2s ease, border-color .2s ease; }
+.drop:hover { transform: translateY(-2px); }
+
+/* 5) 标签徽章 hover：品牌橙文字（印章反馈） */
+.badge { transition: color .15s ease, background .15s ease, transform .15s ease; }
+.badge:hover { color: var(--blue, #F0531C); transform: translateY(-1px); }
+
+/* 6) 生成进度条：品牌橙渐变 */
+.prog .fill {
+  background: linear-gradient(90deg, #F0531C 0%, #ff6a38 35%, #ff8a5c 60%, #ff6a38 100%);
+  background-size: 200% 100%;
+}
+
+/* 7) 金额印章 hover：轻微放大（收讫章盖印感） */
+.fabbar .summary .total { transition: transform .2s cubic-bezier(.3,1.5,.5,1); }
+.fabbar .summary .total:hover { transform: scale(1.06); }
+
+/* ============================================================
+   OhhMyDesign 布局重设计层（追加，DOM/JS 零改动）
+   单列 → 双栏工作台：拖拽区全宽 + 左列表/右时间线 + 预览全宽
+   ============================================================ */
+
+/* ── 容器：双栏 Dashboard ── */
+.wrap {
+  max-width: 1400px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+  align-items: start;
+}
+.wrap > header.app { grid-column: 1 / -1; }
+.wrap > #dropCard { grid-column: 1 / -1; }
+.wrap > .stack-col { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: start; }
+.wrap > #resultCard { grid-column: 1 / -1; }
+@media (max-width: 900px) {
+  .wrap { grid-template-columns: 1fr; }
+  .wrap > .stack-col { grid-template-columns: 1fr; }
+}
+
+/* ── Header：Figma 工作台风格 ── */
+header.app {
+  background: rgba(255,255,255,.55);
+  backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+  border: 1px solid rgba(255,255,255,.7);
+  border-radius: 18px;
+  padding: 22px 28px;
+  margin-bottom: 0;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 20px 50px -32px rgba(20,19,16,.32);
+}
+header.app h1 {
+  font-family: "Bricolage Grotesque", "PingFang SC", sans-serif;
+  font-size: 26px; font-weight: 800; letter-spacing: -.02em;
+}
+header.app p { color: var(--ink-soft); }
+header.app .head-stamp {
+  border-radius: 10px;
+  transition: transform .25s cubic-bezier(.2,.85,.25,1);
+}
+header.app .head-stamp:hover { transform: translateY(-2px) rotate(-1deg); }
+
+/* ── 拖拽区：大玻璃卡 ── */
+#dropCard {
+  border-radius: 22px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.7), 0 34px 70px -34px rgba(20,80,140,.4);
+}
+#dropCard .drop {
+  border-width: 2px;
+  border-radius: 18px;
+  background: rgba(255,255,255,.4);
+}
+#dropCard .drop .drop-tag {
+  font-family: "Space Mono", Consolas, monospace;
+  font-size: 10px; letter-spacing: .18em;
+  color: var(--brand);
+  border: 1.5px solid rgba(240,83,28,.35);
+  border-radius: 0 0 8px 8px;
+  background: rgba(255,255,255,.7);
+}
+
+/* ── 分区卡片：玻璃化 ── */
+#timelineCard, #fileInfoCard {
+  border-radius: 18px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 26px 54px -34px rgba(20,50,80,.5);
+  max-height: 560px;
+  display: flex;
+  flex-direction: column;
+}
+#timelineCard .timeline-head, #fileInfoCard .list-head {
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--line);
+}
+#timelineCard .timeline-head h3, #fileInfoCard .list-head h3 {
+  font-family: "Bricolage Grotesque", "PingFang SC", sans-serif;
+  font-size: 16px; font-weight: 700; letter-spacing: .01em;
+}
+#timelineCard .timeline { max-height: 460px; padding: 8px 14px 12px; }
+#fileInfoCard .file-list { max-height: 460px; padding: 8px 14px 12px; }
+
+/* ── 文件行：卡片化 + 蓝描边 hover ── */
+.list-section-head {
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(13,153,255,.06);
+}
+.list-section-head .title { font-family: "Bricolage Grotesque", "PingFang SC", sans-serif; }
+.file-row {
+  border-radius: 12px;
+  border-left-width: 3px;
+  transition: transform .2s cubic-bezier(.2,.85,.25,1), box-shadow .2s, border-color .2s;
+}
+.file-row:hover {
+  transform: translateX(3px);
+  box-shadow: 0 8px 20px -8px rgba(13,153,255,.2);
+}
+
+/* ── 悬浮栏：玻璃胶囊 + 品牌橙主按钮 ── */
+.fabbar {
+  border-radius: 18px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.7), 0 26px 54px -34px rgba(20,50,80,.5);
+}
+
+/* ── 预览区 ── */
+#resultCard { border-radius: 18px; }
+#resultCard iframe { border-radius: 12px; }
+
+/* ── 时间线表格：账本玻璃 ── */
+.tl-table th {
+  background: rgba(255,255,255,.5);
+  font-family: "Space Mono", Consolas, monospace;
+  font-size: 10px; letter-spacing: .08em;
+}
+.tl-table td { border-bottom: 1px solid var(--line); }
+
+/* OhhMyDesign 令牌补齐（--brand/--tool 规范变量） */
+:root {
+  --brand: #F0531C;
+  --brand-deep: #D2410E;
+  --tool: #0D99FF;
+}
+
+/* ============================================================
+   OhhMyDesign 设计师审稿修复层 v5
+   ①旧色残留 ②按钮胶囊→10px ③blur 降级 ④选中态工具蓝 ⑤令牌补齐
+   ============================================================ */
+/* ① 旧色清理：badge 类别色 → 规范色 */
+.badge.cat-train { color: var(--print, #0D99FF); }
+.badge.err { color: var(--red, #D2410E); }
+.badge.cat-flight { color: #8944ab; }
+/* 印章 tint：旧红 → 品牌橙/深橙 */
+.head-stamp, .fabbar .summary .total {
+  background: rgba(240,83,28,.06);
+  box-shadow: inset 0 0 0 3px rgba(240,83,28,.08);
+  border-color: var(--brand-deep, #D2410E);
+  color: var(--brand-deep, #D2410E);
+}
+/* 滚动条：旧蓝 → 工具蓝 */
+::-webkit-scrollbar-thumb {
+  background: rgba(13,153,255,.28);
+}
+.timeline::-webkit-scrollbar-thumb, .file-list::-webkit-scrollbar-thumb {
+  background: rgba(13,153,255,.28);
+}
+
+/* ② 操作按钮 999px 胶囊 → 10px（规范双圆角语言） */
+.btn {
+  border-radius: 10px;
+}
+.btn.ghost {
+  border: 1.6px solid var(--ink, #14202B);
+  background: transparent;
+  color: var(--ink, #14202B);
+}
+.btn.ghost:hover {
+  background: var(--ink, #14202B);
+  color: #fff;
+}
+
+/* ③ 玻璃 blur 24px → 16px（规范 12–16px） */
+.glass {
+  backdrop-filter: blur(16px) saturate(1.15);
+  -webkit-backdrop-filter: blur(16px) saturate(1.15);
+}
+
+/* ④ 选中态语义：开关/勾选 品牌橙 → 工具蓝 */
+.switch input:checked + .track { background: var(--print, #0D99FF); }
+.row-check.on { background: var(--print, #0D99FF); border-color: var(--print, #0D99FF); }
+
+/* ⑤ 令牌补齐：--ink-soft/--ink-faint（修复 L706 未定义 var 失效） */
+:root {
+  --ink-soft: #4A6173;
+  --ink-faint: #8AA6B8;
+}
+
+/* ⑥ 卡片 hover 位移对齐规范 -4px */
+.card:hover, .glass:hover { transform: translateY(-4px); }
+
+/* ⑦ 暗色适配 */
+@media (prefers-color-scheme: dark) {
+  .head-stamp, .fabbar .summary .total {
+    background: rgba(240,83,28,.12);
+    box-shadow: inset 0 0 0 3px rgba(240,83,28,.15);
+  }
+}
 </style>
 </head>
 <body>
@@ -681,7 +1008,7 @@
     }
 
     // 识别单据类别（优先级从高到低）：
-    // 航空行程单 > 火车票 > 机票 > 网约车 > 公共交通 > 行程单(通用) > 住宿 > 餐饮 > 通用发票 > 其他
+    // 航空行程单 > 火车票 > 网约车 > 机票 > 公共交通 > 行程单(通用) > 住宿 > 餐饮 > 通用发票 > 其他
     function classifyInvoice(text) {
       const t = (text || '').replace(/\s/g, '');
       const lower = t.toLowerCase();
@@ -692,11 +1019,12 @@
       // 2) 火车票（铁路电子客票 / 高铁 / 动车；先排除航空特征，见 detectTrainByText）
       if (detectTrainByText(text, parseKws())) return 'train';
 
-      // 3) 机票（航空客票 / 登机牌 / 机票购买发票）
-      if (/机票|航空运输电子客票|航空客票|登机牌|boarding\s*pass|航班|承运人|airline|flight|航程|起飞|到达|机建|燃油附加/.test(t + lower)) return 'flight';
-
-      // 4) 网约车 / 出租车（滴滴、T3、曹操等出行平台；发票里常含"行程单"字样，必须先于通用行程单判断）
+      // 3) 网约车 / 出租车（滴滴、T3、曹操、高德打车等出行平台；提到机票的也先归到网约车，因为滴滴企业差旅发票中常含"代订机票"等关键词）
+      //   必须先于机票判断：滴滴差旅电子发票可能含"代订机票"字样，放后面会被误判为航空
       if (/网约车|滴滴|花小猪|曹操出行|t3出行|如祺出行|首汽约车|哈啰出行|高德打车|美团打车|出租车|打的|的士|打车|taxi|uber|didi|出行服务/.test(t + lower)) return 'ridehail';
+
+      // 4) 机票（航空客票 / 登机牌 / 机票购买发票）。网约车已先排过，本步只判纯航空场景。
+      if (/机票|航空运输电子客票|航空客票|登机牌|boarding\s*pass|航班|承运人|airline|flight|航程|起飞|到达|机建|燃油附加/.test(t + lower)) return 'flight';
 
       // 5) 公共交通（地铁 / 公交 / 轨道交通）
       if (/公共交通|地铁|公交|轨道交通|有轨电车|轮渡|摆渡|transit|metro|subway|bus|citytransport/.test(t + lower)) return 'transit';
@@ -1025,7 +1353,34 @@
     // 高德行程单：横向表格，每格一个 item。
     // 解析策略：① 视觉行分组（y 容差 5pt，同一行 item 的 y 有微小差异）；② 用表头各列的 x 构造列区间，
     // 数据 item 按 x 落入哪个区间归入哪列（起点/终点列长文本 x 有偏移也可靠）；③ 按"序号"列锚定每个行程。
-    function parseGaodeTrips(text, defaultDate, cells) {
+    /* 高德行程单正则兜底解析：当 column-interval 模式失败时使用。
+   逐行扫描文本，匹配 "序号 车型 上车时间 城市 起点 终点 金额" 模式 */
+function parseGaodeTripsRegex(text, defaultDate) {
+  var out = [];
+  if (!text) return out;
+  var flat = text.replace(/[\r\n]+/g, ' ').replace(/[ \t\u3000]+/g, ' ').trim();
+  // 高德行：序号 + 服务商名 + 车型 + 日期时间 + 城市 + 起终点 + 金额元
+  var tripRe = /(\d{1,3})\s+(\S+?(?:快车|专车|拼车|优享|出租车|特惠|舒适|商务|接送))\s+(\d{4}[-/.]\d{1,2}[-/.]\d{1,2}\s*\d{1,2}:\d{2})\s+([\u4e00-\u9fa5]{2,4}市?)\s+(.+?)\s+(\d+(?:\.\d{1,2})?)元/g;
+  var m;
+  while ((m = tripRe.exec(flat))) {
+    var from = '', to = '';
+    var routeText = m[5] || '';
+    var sep = routeText.lastIndexOf(' ');
+    if (sep > 0) { from = routeText.slice(0, sep).trim(); to = routeText.slice(sep + 1).trim(); }
+    else { from = routeText; }
+    out.push({
+      date: defaultDate || (m[3] ? m[3].split(' ')[0] : ''),
+      car: m[2],
+      time: m[3] || '',
+      city: m[4] || '',
+      from: from, to: to,
+      km: null,
+      amount: parseFloat(m[6]) || null
+    });
+  }
+  return out;
+}
+function parseGaodeTrips(text, defaultDate, cells) {
       const out = [];
       if (!cells || !cells.length) return out;
       const C = cells.filter(c => c.str && c.str.trim());
@@ -1824,5 +2179,7 @@
     updateGenerateBtn();
     updateTimeline();
   </script>
+<script src="../weather-bg.js"></script>
 </body>
 </html>
+
