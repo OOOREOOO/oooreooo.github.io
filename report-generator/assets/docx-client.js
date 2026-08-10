@@ -1,4 +1,4 @@
-/* ==========================================================================
+﻿/* ==========================================================================
    docx-client.js — 客户端 Word 生成 (GitHub Pages 静态部署)
    使用 docx.umd.js 库，无需后端服务
    v19: 目录加页码 / 一、二、三内容完整 / 图片插入 / 字段名同步
@@ -420,18 +420,58 @@
         children: [r(KPDA.g(d["定位分析描述"],""), { size: 22, font: CN })] }));
     }
 
-    // 疑似杆现场图（仅在有图时生成整段）
-    var hasSceneImg = KPDA.hasVal(d["现场图片"]);
-    if (hasSceneImg) {
-      var imgScene = await imgRun(d["现场图片"]);
-      if (imgScene) {
-        el.push(bar("疑似杆现场图", false));
-        el.push(new Paragraph({ alignment: AlignmentType.CENTER,
-          spacing: { before: 120, after: 120 },
-          children: [imgScene] }));
+    // 现场疑似缺陷图片（双图：绝缘子穿孔 + 捆扎线破损）
+    // 向后兼容：优先用"现场图片1"/"现场图片2"，无则退到旧字段"现场图片"
+    var sceneSrc1 = KPDA.hasVal(d["现场图片1"]) ? d["现场图片1"] : (KPDA.hasVal(d["现场图片"]) ? d["现场图片"] : null);
+    var sceneSrc2 = KPDA.hasVal(d["现场图片2"]) ? d["现场图片2"] : null;
+    if (sceneSrc1 || sceneSrc2) {
+      el.push(bar("现场疑似缺陷图片", false));
+      var imgS1 = sceneSrc1 ? await imgRun(sceneSrc1, 280) : null;
+      var imgS2 = sceneSrc2 ? await imgRun(sceneSrc2, 280) : null;
+      if (imgS1 && imgS2) {
+        el.push(new Table({
+          width: { size: CONTENT_W, type: WidthType.DXA },
+          borders: NO_BORD_IN,
+          rows: [new TableRow({
+            children: [
+              new TableCell({
+                borders: NO_BORD,
+                shading: shd(CELL_BG),
+                width: { size: pts(235), type: WidthType.DXA },
+                margins: { top: 50, bottom: 50, left: 40, right: 40 },
+                verticalAlign: VerticalAlign.CENTER,
+                children: [
+                  new Paragraph({ alignment: AlignmentType.CENTER,
+                    spacing: { before: 60, after: 60 }, children: [imgS1] }),
+                  new Paragraph({ alignment: AlignmentType.CENTER,
+                    children: [r("绝缘子穿孔", { size: 18, italic: true, color: "64748B", font: CN })] })
+                ]
+              }),
+              new TableCell({
+                borders: NO_BORD,
+                shading: shd(CELL_BG),
+                width: { size: pts(235), type: WidthType.DXA },
+                margins: { top: 50, bottom: 50, left: 40, right: 40 },
+                verticalAlign: VerticalAlign.CENTER,
+                children: [
+                  new Paragraph({ alignment: AlignmentType.CENTER,
+                    spacing: { before: 60, after: 60 }, children: [imgS2] }),
+                  new Paragraph({ alignment: AlignmentType.CENTER,
+                    children: [r("捆扎线破损", { size: 18, italic: true, color: "64748B", font: CN })] })
+                ]
+              })
+            ]
+          })]
+        }));
+      } else {
+        var imgSingle = imgS1 || imgS2;
+        if (imgSingle) {
+          el.push(new Paragraph({ alignment: AlignmentType.CENTER,
+            spacing: { before: 120, after: 120 },
+            children: [imgSingle] }));
+        }
       }
     }
-
     if (KPDA.hasVal(d["结论"]) || KPDA.hasVal(d["检测结果分析"]) || KPDA.hasVal(d["疑似杆情况说明"]) || KPDA.hasVal(d["处理意见"]))
       el.push(bar("2）检测结果分析", true));
 
@@ -582,17 +622,23 @@
     var toc = [];
     toc.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 240, after: 320 },
       children: [r("目 录", { size: 36, bold: true, color: "2E75B6", font: CN })] }));
-    toc.push(tocLine("一、检测目的", ""));
-    toc.push(tocLine("二、架空线双端局放定位检测原理", ""));
-    toc.push(tocLine("三、本次使用设备", ""));
+    toc.push(tocLine("一、检测目的", "3"));
+    toc.push(tocLine("二、架空线双端局放定位检测原理", "4"));
+    toc.push(tocLine("三、本次使用设备", "4"));
     if (list.length) {
-      toc.push(tocLine("四、缺陷综合检测报告", ""));
+      tocPageBase = 5;
+    // 一二三内容约 2 页，所以"四"从 cover(1)+toc(1)+一二三(2)+PageBreak=5 页开始
+    var defectStartPage = 5;
+    if (list.length) {
+      toc.push(tocLine("四、缺陷综合检测报告", String(defectStartPage)));
+      var runningPage = defectStartPage;
       list.forEach(function(d, i) {
         var raw = KPDA.g(d["结论"],"");
         var clean = String(raw).replace(/&(#?[a-z0-9]+);/gi, function(m, e) {
           return e[0]==='#' ? String.fromCharCode(parseInt(e.slice(1),10)||32) : ' ';
         }).replace(/\s+/g, ' ').trim();
-        toc.push(tocLine((i+1)+". "+clean, ""));
+        toc.push(tocLine((i+1)+". "+clean, String(runningPage)));
+        runningPage += Math.ceil(estimateDefectPages(d));
       });
     }
 
@@ -695,3 +741,5 @@
 
   W.KPDADocx = { generateBlob: generateBlob };
 })();
+
+
