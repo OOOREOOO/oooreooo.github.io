@@ -37,6 +37,34 @@
       font: o.font || CN, size: o.size || 22, bold: !!o.bold,
       color: o.color || "1B1B1B", italics: !!o.italic });
   }
+  // 自动识别三相幅值最大相（2026-08-12）：对比 A/B/C 幅值，返回 {phase, max, rest:[{phase,val},...]}
+  // rest 为其余两相，按 A/B/C 相序排列；无任何有效幅值时返回 null
+  function autoMaxPhase(d, pre) {
+    var list = [];
+    ["A", "B", "C"].forEach(function(p) {
+      var raw = d[pre + p + "相幅值(mV)"];
+      if (raw == null || String(raw).trim() === "") return; // 空值不参与比较（避免 Number("")=0 混入）
+      var v = KPDA.num(raw);
+      if (v != null && !isNaN(v)) list.push({ phase: p, val: v });
+    });
+    if (!list.length) return null;
+    list.sort(function(a, b) { return b.val - a.val; }); // 同值并列时保持 A/B/C 顺序（ES2019 稳定排序）
+    var rest = list.slice(1).sort(function(a, b) { return a.phase < b.phase ? -1 : (a.phase > b.phase ? 1 : 0); });
+    return { phase: list[0].phase, max: list[0].val, rest: rest };
+  }
+  // 图谱说明文本：自动最大相 + 其余两相按相序；幅值全空时退回「故障相」字段
+  function phaseSummaryTxt(d, pre, label) {
+    var m = autoMaxPhase(d, pre);
+    var s = label + "（";
+    if (m) {
+      var rest = [];
+      for (var i = 0; i < 2; i++) rest.push(m.rest[i] ? m.rest[i].val + "mV" : "——");
+      s += "三相幅值最大的 " + m.phase + " 相数值为" + m.max + "mV，其余两相分别为" + rest.join("、");
+    } else {
+      s += "三相幅值最大的 " + KPDA.g(d["故障相"], "C") + " 相数值为" + KPDA.g(d[pre + "C相幅值(mV)"], "——") + "mV，其余两相分别为" + KPDA.g(d[pre + "A相幅值(mV)"], "——") + "mV、" + KPDA.g(d[pre + "B相幅值(mV)"], "——") + "mV";
+    }
+    return s + "）";
+  }
 
   function shd(hex) {
     return { type: ShadingType.CLEAR, fill: hex, color: "auto" };
@@ -361,7 +389,7 @@
     // 前端图谱标题（斜体+灰色）
     el.push(new Paragraph({ alignment: AlignmentType.CENTER,
       spacing: { before: 60, after: 80 },
-      children: [r("前端设备实时图谱（三相幅值最大的 C 相数值为"+KPDA.g(d["前端C相幅值(mV)"],"")+"mV，其余两相分别为"+KPDA.g(d["前端A相幅值(mV)"],"")+"mV、"+KPDA.g(d["前端B相幅值(mV)"],"")+"mV）",
+      children: [r(phaseSummaryTxt(d, "前端", "前端设备实时图谱"),
         { size: 20, italic: true, color: "64748B", font: CN })] }));
 
     // 后端设备悬挂杆号行（浅蓝底+加粗+左对齐）
@@ -398,7 +426,7 @@
     // 后端图谱标题（斜体+灰色）
     el.push(new Paragraph({ alignment: AlignmentType.CENTER,
       spacing: { before: 60, after: 80 },
-      children: [r("后端设备实时图谱（三相幅值最大的 C 相数值为"+KPDA.g(d["后端C相幅值(mV)"],"")+"mV，其余两相分别为"+KPDA.g(d["后端A相幅值(mV)"],"")+"mV、"+KPDA.g(d["后端B相幅值(mV)"],"")+"mV）",
+      children: [r(phaseSummaryTxt(d, "后端", "后端设备实时图谱"),
         { size: 20, italic: true, color: "64748B", font: CN })] }));
 
     // 定位图谱（仅在有图时生成整段，无图则全部跳过）
@@ -625,8 +653,6 @@
     toc.push(tocLine("一、检测目的", "3"));
     toc.push(tocLine("二、架空线双端局放定位检测原理", "4"));
     toc.push(tocLine("三、本次使用设备", "4"));
-    if (list.length) {
-      tocPageBase = 5;
     // 一二三内容约 2 页，所以"四"从 cover(1)+toc(1)+一二三(2)+PageBreak=5 页开始
     var defectStartPage = 5;
     if (list.length) {
