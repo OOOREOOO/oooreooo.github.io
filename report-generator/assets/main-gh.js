@@ -23,7 +23,7 @@
     stepNodes.forEach(function(node) {
       node.addEventListener("click", function() {
         var step = parseInt(node.getAttribute("data-step"));
-        if (step <= currentStep || step === currentStep + 1) showPanel(step);
+        if (step <= currentStep || step === currentStep + 1) { showPanel(step); } else { toast("请先完成上一步", true); }
       });
     });
 
@@ -153,7 +153,12 @@
         var url = URL.createObjectURL(blob);
         var a = document.createElement("a");
         a.href = url;
-        a.download = "架空线双端局放检测报告.docx";
+        // 导出文件名：标题-副标题（如「南网云南曲靖沾益大坡供电所架空线双端局放检测报告-10kV架空线双端局放定位仪巡检」）
+        var _info = KPDA.state.info || {};
+        var _t = String(_info["标题"] || "").trim();
+        var _s = String(_info["副标题"] || "").trim();
+        var _fn = [_t, _s].filter(Boolean).join("-").replace(/[\\\/:*?"<>|]/g, "_").trim();
+        a.download = (_fn || "架空线双端局放检测报告") + ".docx";
         document.body.appendChild(a);
         a.click();
         a.remove();
@@ -167,31 +172,24 @@
       });
     };
 
-    // 打印 PDF
+        // 打印 PDF（v71：复用页面完整样式 + 弹窗拦截兜底）
     $("btnPrintPdf").onclick = function() {
       var w = window.open("", "_blank");
+      if (!w) { toast("请允许弹出窗口后重试", true); return; }
       var html = KPDA.buildReportHtml(KPDA.state.info, KPDA.state.defects);
-      w.document.write("<html><head><meta charset='utf-8'><title>报告</title><style>");
-      w.document.write("body{font-family:'Microsoft YaHei',sans-serif;padding:40px;color:#1b1b1b;line-height:1.8;}");
-      w.document.write(".report-cover{text-align:center;border-bottom:2px solid #1A5276;margin-bottom:30px;padding-bottom:20px;}");
-      w.document.write(".report-cover .banner{font-size:48px;font-weight:700;color:#fff;background:#10407C;padding:20px;margin:30px 0;}");
-      w.document.write(".report-h{font-size:16px;font-weight:700;color:#1A5276;border-bottom:2px solid #1A5276;margin:20px 0 10px;}");
-      w.document.write("</style></head><body>" + html + "</body></html>");
+      var cssHref = "";
+      var lk = document.querySelector('link[href*="style.css"]');
+      if (lk) cssHref = lk.href;
+      w.document.write("<!DOCTYPE html><html><head><meta charset='utf-8'><title>检测报告</title>");
+      if (cssHref) w.document.write("<link rel='stylesheet' href='" + cssHref + "'>");
+      w.document.write("<style>body{padding:40px;color:#1b1b1b;line-height:1.8;background:#fff;}");
+      w.document.write(".report-img img{max-width:100%;height:auto;}.report-img-row{display:flex;gap:20px;}.report-img-half{flex:1;min-width:0;}.report-img,.report-img-ph{page-break-inside:avoid;}");
+      w.document.write("@media print{body{padding:0;}}</style></head><body>");
+      w.document.write(html + "</body></html>");
       w.document.close();
       setTimeout(function() { w.print(); }, 500);
     };
-
-    // 刷新页面（验证是否最新版本）
-    // 强制刷新：每次加载都确保 index.html 是最新（绕过浏览器对主文档的缓存）
-    (function forceFresh() {
-      try {
-        var u = new URL(location.href);
-        if (!u.searchParams.has("_t")) {
-          u.searchParams.set("_t", String(Date.now()));
-          location.replace(u.toString());
-        }
-      } catch (e) {}
-    })();
+    // v71：移除 forceFresh 自动跳转（每次访问双加载 2.85MB 的根因）；保留手动刷新按钮
 
     $("btnRefresh").onclick = function() {
       // 硬刷新：加时间戳绕过缓存
