@@ -1860,3 +1860,42 @@ body {
     color: #14202B;
   }
 }
+/* ============================================================
+   v19 设计评审修复层（2026-08-11）
+   ①暗色弱文字对比 ②版本卡回 4pt 网格+去嵌套 blur ③--text-3 回归 ④焦点环工具蓝
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+  :root { --ink-faint: #6E8496; }
+}
+.right-sidebar .accent-card {
+  padding: 24px;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: rgba(255,255,255,.8);
+}
+@media (prefers-color-scheme: dark) {
+  .right-sidebar .accent-card { background: rgba(22,30,38,.85); }
+}
+.report-end { color: var(--ink-faint, #60788B); }
+.empty-state { color: var(--ink-faint, #60788B); }
+.btn:focus-visible, .dc-header:focus-visible, .nav-item:focus-visible {
+  outline: 2px solid var(--tool, #0D99FF);
+  outline-offset: -2px;
+}
+/* ============================================================
+   v81（2026-08-13）：toast 提升高度，避免与底部 nav-dock 悬浮导航重叠
+   原 .toast bottom:20px 与 .nav-dock bottom:22px 位置重叠
+   ============================================================ */
+.toast { bottom: 96px; }
+@media (max-width: 640px) {
+  .toast { bottom: 88px; left: 16px; right: 16px; transform: none; text-align: center; }
+}
+
+/* ============================================================
+   v82（2026-08-13）：暗色模式 toast 可读性修复
+   原 .toast{background:var(--text-1)} 暗色下 --text-1 为浅色，白字白底不可读
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+  .toast { background: #1b2836; color: #ffffff; box-shadow: 0 4px 16px rgba(0,0,0,.45); }
+  .toast.err { background: #a33a2a; }
+}
