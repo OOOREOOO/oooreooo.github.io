@@ -660,9 +660,9 @@ body {
 .badge { transition: color .15s ease, background .15s ease, transform .15s ease; }
 .badge:hover { color: var(--blue, #F0531C); transform: translateY(-1px); }
 
-/* 6) 生成进度条：品牌橙渐变 */
+/* 6) 生成进度条：品牌蓝渐变(2026-08-14 用户指定 #007BFF→#0056B3) */
 .prog .fill {
-  background: linear-gradient(90deg, #F0531C 0%, #ff6a38 35%, #ff8a5c 60%, #ff6a38 100%);
+  background: linear-gradient(90deg, #007BFF 0%, #2e93ff 35%, #4da3ff 60%, #0056B3 100%);
   background-size: 200% 100%;
 }
 
@@ -861,7 +861,7 @@ header.app .head-stamp:hover { transform: translateY(-2px) rotate(-1deg); }
    ============================================================ */
 #_loadBarWrap{position:fixed;top:0;left:0;right:0;z-index:99999;height:6px;background:rgba(20,32,43,.18);transition:opacity .4s}
 #_loadBarWrap.done{opacity:0;pointer-events:none}
-#_loadBar{height:100%;width:0;background:linear-gradient(90deg,#F0531C,#ff6a38,#ffb35c);transition:width .25s ease;border-radius:0 3px 3px 0;position:relative;overflow:hidden;box-shadow:0 1px 10px rgba(240,83,28,.7)}
+#_loadBar{height:100%;width:0;background:linear-gradient(90deg,#007BFF,#2e93ff,#4da3ff);transition:width .25s ease;border-radius:0 3px 3px 0;position:relative;overflow:hidden;box-shadow:0 1px 10px rgba(240,83,28,.7)}
 #_loadBar::after{content:'';position:absolute;top:0;bottom:0;width:90px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.65),transparent);animation:loadSheen 1s linear infinite}
 @keyframes loadSheen{from{transform:translateX(-100px)}to{transform:translateX(120vw)}}
 #_loadPct{position:fixed;top:14px;right:16px;z-index:99999;display:flex;align-items:center;gap:10px;font-family:-apple-system,'Microsoft YaHei',sans-serif;background:linear-gradient(135deg,#1b2836,#0e1822);border:2px solid rgba(240,83,28,.85);border-radius:999px;padding:9px 18px 9px 14px;box-shadow:0 10px 32px rgba(240,83,28,.5),0 0 0 5px rgba(240,83,28,.12),inset 0 1px 0 rgba(255,255,255,.12);letter-spacing:.04em;transition:opacity .4s, transform .2s;animation:_pbPulse 1.6s ease-in-out infinite}
@@ -901,7 +901,7 @@ header.app .head-stamp:hover { transform: translateY(-2px) rotate(-1deg); }
 /* ============================================================
    v6 设计评审修复层（2026-08-11）：蓝辉光/ink-faint/blur/旧蓝阴影/对比度/暗色
    ============================================================ */
-.prog .fill { box-shadow: 0 0 26px rgba(240,83,28,.35); }
+.prog .fill { box-shadow: 0 0 26px rgba(0,123,255,.4); }
 :root { --ink-faint: #60788B; }
 .fabbar { backdrop-filter: blur(16px) saturate(1.15); -webkit-backdrop-filter: blur(16px) saturate(1.15); }
 .preview-pop { backdrop-filter: blur(16px) saturate(1.15); -webkit-backdrop-filter: blur(16px) saturate(1.15); }
@@ -1296,6 +1296,7 @@ header.app .head-stamp:hover { transform: translateY(-2px) rotate(-1deg); }
 }
 /* 大写金额样式残留：对应 DOM 已移除，强制不显示 */
 .fabbar .summary .total .upper { display: none !important; }
+
 </style>
 </head>
 <body>
@@ -1453,11 +1454,11 @@ if(document.body){
     <div class="tip" id="previewTip">正在生成预览…</div>
   </div>
 
-  <script src="./pdf-lib.min.js?v=98"></script>
-  <script src="./pdf.min.js?v=98"></script>
-  <script src="./jsqr.min.js?v=98"></script>
-  <script src="./jszip.min.js?v=98"></script>
-  <script src="./merge-core.js?v=98"></script>
+  <script src="./pdf-lib.min.js?v=101"></script>
+  <script src="./pdf.min.js?v=101"></script>
+  <script src="./jsqr.min.js?v=101"></script>
+  <script src="./jszip.min.js?v=101"></script>
+  <script src="./merge-core.js?v=101"></script>
   <script>
     const PT_PER_CM = 28.3464567;
     const { PDFDocument } = PDFLib;
@@ -2361,12 +2362,7 @@ function parseGaodeTrips(text, defaultDate, cells) {
       row.className = 'file-card';  // v83：卡片式
       row.style.setProperty('--idx', idx || 0);
 
-      const sizeCm = f.pages ? `${(f.w / PT_PER_CM).toFixed(1)}×${(f.h / PT_PER_CM).toFixed(1)} cm` : '-';
-      // 小发票判定依据：实际内容高度（去掉空白），而非整页高度
-      const hasContent = f.content && f.content.length;
-      const maxContentCm = hasContent
-        ? Math.max(...f.content.map(c => (c.empty ? 0 : (c.hCm || 0))))
-        : (f.pages ? f.h / PT_PER_CM : 0);
+      // v100：卡片元数据改为金额显示，尺寸/页数不再展示(sizeCm/maxContentCm 变量已移除)
       const noText = !f.text || f.text.length < 10;
       const badge = f.error
         ? '<span class="badge err">无法解析</span>'
@@ -2404,9 +2400,7 @@ function parseGaodeTrips(text, defaultDate, cells) {
         </div>
         <div class="fc-meta">
           ${dateTag}
-          <span>${f.pages ? f.pages + ' 页' : '未知'}</span>
-          <span>${sizeCm}</span>
-          <span>内容高 ${maxContentCm.toFixed(1)}cm</span>
+          ${amountStr}
           ${catBadge}
           ${badge}
           ${warn}
