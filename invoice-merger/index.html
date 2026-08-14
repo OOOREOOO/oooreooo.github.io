@@ -867,7 +867,11 @@ header.app .head-stamp:hover { transform: translateY(-2px) rotate(-1deg); }
 #_loadPct{position:fixed;top:14px;right:16px;z-index:99999;display:flex;align-items:center;gap:10px;font-family:-apple-system,'Microsoft YaHei',sans-serif;background:linear-gradient(135deg,#1b2836,#0e1822);border:2px solid rgba(240,83,28,.85);border-radius:999px;padding:9px 18px 9px 14px;box-shadow:0 10px 32px rgba(240,83,28,.5),0 0 0 5px rgba(240,83,28,.12),inset 0 1px 0 rgba(255,255,255,.12);letter-spacing:.04em;transition:opacity .4s, transform .2s;animation:_pbPulse 1.6s ease-in-out infinite}
 #_loadPct.done{opacity:0;animation:none}
 @keyframes _pbPulse{0%,100%{box-shadow:0 10px 32px rgba(240,83,28,.5),0 0 0 5px rgba(240,83,28,.12),inset 0 1px 0 rgba(255,255,255,.12)}50%{box-shadow:0 10px 42px rgba(240,83,28,.8),0 0 0 9px rgba(240,83,28,.18),inset 0 1px 0 rgba(255,255,255,.12)}}
-._pb_spin{width:17px;height:17px;flex:0 0 auto;border:3px solid rgba(255,255,255,.28);border-top-color:#ff8a5c;border-right-color:#F0531C;border-radius:50%;animation:_pbRotate .75s linear infinite}
+._pb_spin{width:18px;height:18px;flex:0 0 auto;border-radius:50%;
+  background:conic-gradient(from 0deg, rgba(255,255,255,.22) 0deg, rgba(255,255,255,.22) 300deg, #FF8A3D 340deg, #F0531C 360deg);
+  -webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+  mask:radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+  animation:_pbRotate .75s linear infinite}
 @keyframes _pbRotate{to{transform:rotate(360deg)}}
 ._pb_txt{font-size:13px;font-weight:700;color:rgba(255,255,255,.92);white-space:nowrap}
 ._pb_num{font-size:17px;font-weight:800;color:#ff8a5c;font-variant-numeric:tabular-nums;min-width:46px;text-align:right;text-shadow:0 0 12px rgba(240,83,28,.85)}
@@ -1485,11 +1489,11 @@ if(document.body){
     <div class="tip" id="previewTip">正在生成预览…</div>
   </div>
 
-  <script src="./pdf-lib.min.js?v=103"></script>
-  <script src="./pdf.min.js?v=103"></script>
-  <script src="./jsqr.min.js?v=103"></script>
-  <script src="./jszip.min.js?v=103"></script>
-  <script src="./merge-core.js?v=103"></script>
+  <script src="./pdf-lib.min.js?v=104"></script>
+  <script src="./pdf.min.js?v=104"></script>
+  <script src="./jsqr.min.js?v=104"></script>
+  <script src="./jszip.min.js?v=104"></script>
+  <script src="./merge-core.js?v=104"></script>
   <script>
     const PT_PER_CM = 28.3464567;
     const { PDFDocument } = PDFLib;
