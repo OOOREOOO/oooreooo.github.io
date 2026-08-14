@@ -6,11 +6,11 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>架空线双端局放检测报告系统 v82</title>
+<title>架空线双端局放检测报告系统 v84</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=82" onload="window._pb_css=1">
+<link rel="stylesheet" href="assets/style.css?v=83" onload="window._pb_css=1">
 <style id="_pb_style">
 #_loadBarWrap{position:fixed;top:0;left:0;right:0;z-index:99999;height:6px;background:rgba(20,32,43,.18);transition:opacity .4s}
 #_loadBarWrap.done{opacity:0;pointer-events:none}
@@ -20,11 +20,24 @@
 #_loadPct{position:fixed;top:14px;right:16px;z-index:99999;display:flex;align-items:center;gap:10px;font-family:-apple-system,'Microsoft YaHei',sans-serif;background:linear-gradient(135deg,#1b2836,#0e1822);border:2px solid rgba(240,83,28,.85);border-radius:999px;padding:9px 18px 9px 14px;box-shadow:0 10px 32px rgba(240,83,28,.5),0 0 0 5px rgba(240,83,28,.12),inset 0 1px 0 rgba(255,255,255,.12);letter-spacing:.04em;transition:opacity .4s, transform .2s;animation:_pbPulse 1.6s ease-in-out infinite}
 #_loadPct.done{opacity:0;animation:none}
 @keyframes _pbPulse{0%,100%{box-shadow:0 10px 32px rgba(240,83,28,.5),0 0 0 5px rgba(240,83,28,.12),inset 0 1px 0 rgba(255,255,255,.12)}50%{box-shadow:0 10px 42px rgba(240,83,28,.8),0 0 0 9px rgba(240,83,28,.18),inset 0 1px 0 rgba(255,255,255,.12)}}
-._pb_spin{width:17px;height:17px;flex:0 0 auto;border:3px solid rgba(255,255,255,.28);border-top-color:#ff8a5c;border-right-color:#F0531C;border-radius:50%;animation:_pbRotate .75s linear infinite}
+._pb_spin{width:18px;height:18px;flex:0 0 auto;border-radius:50%;
+  background:conic-gradient(from 0deg, rgba(255,255,255,.22) 0deg, rgba(255,255,255,.22) 300deg, #FF8A3D 340deg, #F0531C 360deg);
+  -webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+  mask:radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+  animation:_pbRotate .75s linear infinite}
 @keyframes _pbRotate{to{transform:rotate(360deg)}}
 ._pb_txt{font-size:13px;font-weight:700;color:rgba(255,255,255,.92);white-space:nowrap}
 ._pb_num{font-size:17px;font-weight:800;color:#ff8a5c;font-variant-numeric:tabular-nums;min-width:46px;text-align:right;text-shadow:0 0 12px rgba(240,83,28,.85)}
 @media (max-width:640px){#_loadPct{top:10px;right:10px;padding:7px 13px 7px 11px;gap:7px;border-width:1.5px}#_loadPct ._pb_txt{font-size:12px}#_loadPct ._pb_num{font-size:15px;min-width:40px}}
+/* v85：近7日报告生成柱状图（替换版本号卡片；白卡+橙顶条，高对比） */
+.accent-card-version{background:#fff !important;color:#4A4A4A !important;border-top:4px solid #FF6B4A !important;box-shadow:0 4px 16px rgba(233,78,59,.12) !important}
+.accent-card-version .accent-card-eyebrow{color:#FF6B4A !important;opacity:1 !important;font-weight:700}
+.accent-card-version .report-chart{position:relative;margin:12px 0 12px}
+.accent-card-version .report-chart svg{display:block;width:100%;height:170px}
+.accent-card-version .chart-days{display:flex;justify-content:space-between;padding:0 6px;margin-top:2px}
+.accent-card-version .chart-days span{font-size:10px;color:#8a8a8a;font-family:sans-serif}
+.accent-card-version .chart-empty{display:none;text-align:center;padding:40px 10px;font-size:12px;color:#a5a5a5;line-height:1.7}
+.accent-card-version .btn-card-outline{border-color:#333;color:#333}
 </style>
 </head>
 <body>
@@ -43,13 +56,15 @@ function pctUp(){
   var cnt=Object.keys(seen).length;
   if(cnt<1&&cssDone)cnt=1;
   var current=Math.max(n,cnt);
-  var p=Math.min(99,Math.round(current/TOTAL*100));
+  // v86：动态分母——按实际发现资源数留余量，进度平滑爬升(不再 20→99 跳变)
+  var dynTotal=Math.max(TOTAL, Math.round(cnt*1.6), 12);
+  var p=Math.min(99,Math.round(current/dynTotal*100));
   bar.style.width=p+'%';renderPct(p);
-  if(p>=99)finish();
+  // v83：隐藏时机由 load 后 allDone 轮询主导，不在 pctUp 内提前 finish
 }
 
 function renderPct(p){
-  pct.innerHTML='<span class="_pb_spin"></span><span class="_pb_txt">资源加载中</span><span class="_pb_num">'+p+'%</span>';
+  pct.innerHTML='<span class="_pb_spin"></span><span class="_pb_txt">v83 资源加载中</span><span class="_pb_num">'+p+'%</span>';
 }
 
 function forceFinish(){
@@ -59,7 +74,18 @@ function forceFinish(){
     if(p){p.classList.add('done');setTimeout(function(){if(p.parentNode)p.remove()},800)}
   }catch(e){}
 }
-setTimeout(forceFinish, 3000);  // 兜底：无论加载状态如何，3 秒后必定移除进度条
+// v83：移除 3 秒强制隐藏——加载进度必须等全部资源载入后再消失。
+// 仅保留超长保底(30s)防止极端情况下进度条永驻。
+var loadedOnce = false;
+function safeFinish(){
+  if (loadedOnce) return;
+  loadedOnce = true;
+  finish();
+}
+setTimeout(function(){
+  // 保底：30 秒后若仍未完成则隐藏（正常情况 window load + 资源齐早已完成）
+  forceFinish();
+}, 30000);
 function finish(){
   clearInterval(timer);
   var wait=Math.max(0,1500-(Date.now()-_pbStart)); // 最短展示 1.5s，避免加载太快时徽章一闪而过
@@ -71,12 +97,30 @@ function finish(){
 if(document.body){
   wrap=mk('_loadBarWrap');bar=mk('_loadBar');pct=mk('_loadPct');
   timer=setInterval(pctUp,180);
-  window.addEventListener('load',function(){clearInterval(timer);pctUp();setTimeout(pctUp,400)});
+  window.addEventListener('load',function(){
+    // v83：load 后继续轮询直到资源全部就绪(进度 100%)再隐藏，不再提前消失
+    clearInterval(timer);
+    timer=setInterval(function(){
+      pctUp();
+      // 所有资源条目均已载入(含图片/字体/脚本)且 load 已触发 → 完成
+      var entries=performance.getEntriesByType('resource');
+      var allDone=entries.length>0 && entries.every(function(e){return e.responseEnd>0 || e.duration>0;});
+      if(allDone){ clearInterval(timer); safeFinish(); }
+    },250);
+  });
 } else {
   document.addEventListener('DOMContentLoaded',function(){
     wrap=mk('_loadBarWrap');bar=mk('_loadBar');pct=mk('_loadPct');
     timer=setInterval(pctUp,180);
-    window.addEventListener('load',function(){clearInterval(timer);pctUp();setTimeout(pctUp,400)});
+    window.addEventListener('load',function(){
+      clearInterval(timer);
+      timer=setInterval(function(){
+        pctUp();
+        var entries=performance.getEntriesByType('resource');
+        var allDone=entries.length>0 && entries.every(function(e){return e.responseEnd>0 || e.duration>0;});
+        if(allDone){ clearInterval(timer); safeFinish(); }
+      },250);
+    });
   });
 }
 })();
@@ -200,11 +244,13 @@ if(document.body){
 
     
     <div class="accent-card accent-card-version">
-      <div class="accent-card-eyebrow">内部版本</div>
-      <div class="accent-card-title">Build v82</div>
-      <div class="accent-card-sub">构建时间 2026-08-13 12:40（验收修复）</div>
-      <div class="accent-card-hint" id="buildHint">若显示旧版本，请硬刷新 (Ctrl+Shift+R)</div>
-      <button class="btn-card-outline" id="btnRefresh">刷新页面</button>
+      <div class="accent-card-eyebrow">近 7 日报告生成</div>
+      <div class="report-chart" id="reportChart">
+        <svg id="chartSvg" width="100%" height="150" viewBox="0 0 300 150" preserveAspectRatio="none" aria-hidden="true"></svg>
+        <div class="chart-days" id="chartDays"></div>
+        <div class="chart-empty" id="chartEmpty">近 7 日暂无生成记录<br>生成报告后将自动统计</div>
+      </div>
+      
     </div>
 
     <div class="side-card">
@@ -223,18 +269,18 @@ if(document.body){
   </aside>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="assets/js/xlsx.full.min.js?v=82" onload="window._pb_s=~~window._pb_s+1"></script>
-<script src="assets/js/jszip.min.js?v=82" onload="window._pb_s=~~window._pb_s+1"></script>
-<script src="assets/js/docx.umd.js?v=82" onload="window._pb_s=~~window._pb_s+1"></script>
-<script src="assets/app.js?v=82" onload="window._pb_s=~~window._pb_s+1"></script>
-<script src="assets/img_assets.js?v=82" onload="window._pb_s=~~window._pb_s+1"></script>
-<script src="assets/docx-client.js?v=82" onload="window._pb_s=~~window._pb_s+1"></script>
-<script src="assets/main-gh.js?v=82" onload="window._pb_s=~~window._pb_s+1"></script>
+<script src="assets/js/xlsx.full.min.js?v=83" onload="window._pb_s=~~window._pb_s+1"></script>
+<script src="assets/js/jszip.min.js?v=83" onload="window._pb_s=~~window._pb_s+1"></script>
+<script src="assets/js/docx.umd.js?v=83" onload="window._pb_s=~~window._pb_s+1"></script>
+<script src="assets/app.js?v=83" onload="window._pb_s=~~window._pb_s+1"></script>
+<script src="assets/img_assets.js?v=83" onload="window._pb_s=~~window._pb_s+1"></script>
+<script src="assets/docx-client.js?v=83" onload="window._pb_s=~~window._pb_s+1"></script>
+<script src="assets/main-gh.js?v=89" onload="window._pb_s=~~window._pb_s+1"></script>
   
 
   <!-- 步骤导航：底部居中悬浮 dock -->
 <nav class="nav-list nav-dock">
-      <button class="nav-item active" data-step="0">
+      <button class="nav-item" data-step="0">
         <span class="nav-icon" aria-hidden="true">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         </span>
