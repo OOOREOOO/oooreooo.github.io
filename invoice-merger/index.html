@@ -1302,7 +1302,7 @@ header.app .head-stamp:hover { transform: translateY(-2px) rotate(-1deg); }
 <body>
 <script>
 (function(){
-var TOTAL=5,loaded=0;
+var TOTAL=5;
 var bar,pct,wrap,timer;
 var _pbStart=Date.now();
 
@@ -1315,11 +1315,11 @@ function pctUp(){
   if(cnt<1)cnt=1;
   var p=Math.min(99,Math.round(cnt/TOTAL*100));
   bar.style.width=p+'%';renderPct(p);
-  if(p>=99)finish();
+  // v102:隐藏时机由 load 后 allDone 轮询主导,不在 pctUp 内提前 finish
 }
 
 function renderPct(p){
-  pct.innerHTML='<span class="_pb_spin"></span><span class="_pb_txt">资源加载中</span><span class="_pb_num">'+p+'%</span>';
+  pct.innerHTML='<span class="_pb_spin"></span><span class="_pb_txt">v102 资源加载中</span><span class="_pb_num">'+p+'%</span>';
 }
 
 function forceFinish(){
@@ -1329,7 +1329,18 @@ function forceFinish(){
     if(p){p.classList.add('done');setTimeout(function(){if(p.parentNode)p.remove()},800)}
   }catch(e){}
 }
-setTimeout(forceFinish, 3000);  // 兜底：无论加载状态如何，3 秒后必定移除进度条
+// v101：移除 3 秒强制隐藏——加载进度必须等全部资源载入后再消失。
+// 仅保留超长保底(30s)防止极端情况下进度条永驻。
+var loadedOnce = false;
+function safeFinish(){
+  if (loadedOnce) return;
+  loadedOnce = true;
+  finish();
+}
+setTimeout(function(){
+  // 保底：30 秒后若仍未完成则隐藏（正常情况 window load + 资源齐早已完成）
+  forceFinish();
+}, 30000);
 function finish(){
   clearInterval(timer);
   var wait=Math.max(0,1500-(Date.now()-_pbStart)); // 最短展示 1.5s，避免加载太快时徽章一闪而过
@@ -1341,12 +1352,30 @@ function finish(){
 if(document.body){
   wrap=mk('_loadBarWrap');bar=mk('_loadBar');pct=mk('_loadPct');
   timer=setInterval(pctUp,180);
-  window.addEventListener('load',function(){clearInterval(timer);pctUp();setTimeout(pctUp,400)});
+  window.addEventListener('load',function(){
+    // v101：load 后继续轮询直到资源全部就绪(进度 100%)再隐藏，不再提前消失
+    clearInterval(timer);
+    timer=setInterval(function(){
+      pctUp();
+      // 所有资源条目均已载入(含图片/字体/脚本)且 load 已触发 → 完成
+      var entries=performance.getEntriesByType('resource');
+      var allDone=entries.length>0 && entries.every(function(e){return e.responseEnd>0 || e.duration>0;});
+      if(allDone){ clearInterval(timer); safeFinish(); }
+    },250);
+  });
 } else {
   document.addEventListener('DOMContentLoaded',function(){
     wrap=mk('_loadBarWrap');bar=mk('_loadBar');pct=mk('_loadPct');
     timer=setInterval(pctUp,180);
-    window.addEventListener('load',function(){clearInterval(timer);pctUp();setTimeout(pctUp,400)});
+    window.addEventListener('load',function(){
+      clearInterval(timer);
+      timer=setInterval(function(){
+        pctUp();
+        var entries=performance.getEntriesByType('resource');
+        var allDone=entries.length>0 && entries.every(function(e){return e.responseEnd>0 || e.duration>0;});
+        if(allDone){ clearInterval(timer); safeFinish(); }
+      },250);
+    });
   });
 }
 })();
@@ -1454,11 +1483,11 @@ if(document.body){
     <div class="tip" id="previewTip">正在生成预览…</div>
   </div>
 
-  <script src="./pdf-lib.min.js?v=101"></script>
-  <script src="./pdf.min.js?v=101"></script>
-  <script src="./jsqr.min.js?v=101"></script>
-  <script src="./jszip.min.js?v=101"></script>
-  <script src="./merge-core.js?v=101"></script>
+  <script src="./pdf-lib.min.js?v=102"></script>
+  <script src="./pdf.min.js?v=102"></script>
+  <script src="./jsqr.min.js?v=102"></script>
+  <script src="./jszip.min.js?v=102"></script>
+  <script src="./merge-core.js?v=102"></script>
   <script>
     const PT_PER_CM = 28.3464567;
     const { PDFDocument } = PDFLib;
@@ -2550,10 +2579,10 @@ function parseGaodeTrips(text, defaultDate, cells) {
       const unknownAmtCount = invoiceFiles.filter(f => f.amount == null).length;
       const totalAmount = invoiceFiles.reduce((sum, f) => sum + (f.amount || 0), 0);
 
-      // 仅展示合计文件数与金额；火车票/行程单等明细从右侧列表查看
-      let html = `<div class="row">合并 <b>${usable.length}</b> 个</div>`;
+      // 仅展示金额合计；文件数说明已移除（点击生成时通过 toast 提示）
+      let html = '';
 
-      // 第二行：大字金额合计 + 大写
+      // 第一行：大字金额合计 + 大写
       if (invoiceFiles.length) {
         html += `<div class="total">¥${totalAmount.toFixed(2)}</div>`;
       }
@@ -2653,7 +2682,7 @@ function parseGaodeTrips(text, defaultDate, cells) {
       const usable = files.filter(f => f.include && !f.error);
       if (usable.length === 0) { toast('没有可合并的文件'); return; }
       $('#generate').disabled = true;
-      toast('正在合并…');
+      toast('正在合并 ' + usable.length + ' 个文件…');
       try {
         // 依赖检查：从完整站点打开时 PDFLib 一定存在；缺失说明打开了不完整副本
         if (typeof PDFDocument === 'undefined' || typeof mergeInvoices === 'undefined') {
