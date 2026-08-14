@@ -1313,7 +1313,9 @@ function pctUp(){
   var seen={};entries.forEach(function(e){seen[e.name]=true});
   var cnt=Object.keys(seen).length;
   if(cnt<1)cnt=1;
-  var p=Math.min(99,Math.round(cnt/TOTAL*100));
+  // v103：动态分母——按实际发现资源数留余量，进度平滑爬升(不再 20→99 跳变)
+  var dynTotal=Math.max(TOTAL, Math.round(cnt*1.6), 10);
+  var p=Math.min(99,Math.round(cnt/dynTotal*100));
   bar.style.width=p+'%';renderPct(p);
   // v102:隐藏时机由 load 后 allDone 轮询主导,不在 pctUp 内提前 finish
 }
@@ -1483,11 +1485,11 @@ if(document.body){
     <div class="tip" id="previewTip">正在生成预览…</div>
   </div>
 
-  <script src="./pdf-lib.min.js?v=102"></script>
-  <script src="./pdf.min.js?v=102"></script>
-  <script src="./jsqr.min.js?v=102"></script>
-  <script src="./jszip.min.js?v=102"></script>
-  <script src="./merge-core.js?v=102"></script>
+  <script src="./pdf-lib.min.js?v=103"></script>
+  <script src="./pdf.min.js?v=103"></script>
+  <script src="./jsqr.min.js?v=103"></script>
+  <script src="./jszip.min.js?v=103"></script>
+  <script src="./merge-core.js?v=103"></script>
   <script>
     const PT_PER_CM = 28.3464567;
     const { PDFDocument } = PDFLib;
