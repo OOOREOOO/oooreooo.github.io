@@ -88,6 +88,9 @@
   // MediaBox 缩小后，嵌入页 BBox=bbox，绘制时只渲染正文区域（剔除下方图片/广告区，如滴滴发票的 didi 区）
   // v23 修复：bbox 来自画布坐标系（基于 CropBox，如滴滴发票 CropBox=[0,383,610,864]），
   // 需平移到 MediaBox 坐标系（加 CropBox 左下原点偏移），否则裁剪框错位、正文被裁掉只剩底部装饰区。
+  // v27 修复：仅改 MediaBox/CropBox 不改内容流会导致内容坐标错位（内容流坐标基于原 MediaBox 原点，
+  // 落在新 BBox 之外 → embedPdf 绘制后整页空白）。正确做法与 preRotate90 一致：
+  // MediaBox/CropBox 归一化到 [0,0,w,h]，同时用内容流包裹矩阵把原内容平移到新原点。
   async function applyCropBoxes(PDFDocument, bytes, content) {
     const src = await PDFDocument.load(bytes);
     const context = src.context;
@@ -100,9 +103,33 @@
       const cx = parseFloat(String(crop.get(0)));
       const cy = parseFloat(String(crop.get(1)));
       const bb = c.bbox;
-      const box = context.obj([cx + bb.x, cy + bb.y, cx + bb.x + bb.w, cy + bb.y + bb.h]);
+      // 裁剪区(原 PDF 坐标系,左下原点)
+      const bx = cx + bb.x;
+      const by = cy + bb.y;
+      const bw = bb.w;
+      const bh = bb.h;
+      if (bw <= 0 || bh <= 0) return;
+      // MediaBox/CropBox 归一化到 [0,0,w,h]
+      const box = context.obj([0, 0, bw, bh]);
       pg.node.set(PDFLibRef.PDFName.of('MediaBox'), box);
       pg.node.set(PDFLibRef.PDFName.of('CropBox'), box);
+      // 内容流包裹：平移 (-bx,-by) 把原内容移到新原点（裁剪区之外的内容自然落到新 MediaBox 外被裁掉）
+      const csHead = context.flateStream(
+        "q\n1 0 0 1 " + (-bx) + " " + (-by) + " cm\n"
+      );
+      const csTail = context.flateStream("Q\n");
+      const headRef = context.register(csHead);
+      const tailRef = context.register(csTail);
+      const contents = pg.node.Contents();
+      if (!contents) {
+        pg.node.set(PDFLibRef.PDFName.of('Contents'), context.obj([headRef, tailRef]));
+      } else if (typeof contents.asArray === 'function') {
+        const arr = contents.asArray();
+        arr.unshift(headRef);
+        arr.push(tailRef);
+      } else {
+        pg.node.set(PDFLibRef.PDFName.of('Contents'), context.obj([headRef, contents, tailRef]));
+      }
     });
     return await src.save();
   }
