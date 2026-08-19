@@ -28,7 +28,10 @@
   const PT_PER_CM = 28.3464567;
   const PT_PER_MM = 2.83464567;
   const A4 = [595.28, 841.89]; // A4 单位 pt
-  const PDFLibRef = global.PDFLib; // 浏览器为 window.PDFLib，Node 下需在 globalThis 上挂 PDFLib
+  function getPDFLib() {
+    // 异步加载 pdf-lib 时，合并调用发生在加载后；这里动态读取最新引用。
+    return global.PDFLib || (typeof window !== 'undefined' ? window.PDFLib : null);
+  }
 
   const DEFAULT_TRAIN_KEYWORDS = ['火车票', '铁路', '高铁', '客票', '车票', 'train', '行程单'];
 
@@ -69,7 +72,7 @@
       const contents = pg.node.Contents();
       if (!contents) {
         // 无 Contents：新建数组
-        pg.node.set(PDFLibRef.PDFName.of('Contents'), context.obj([headRef, tailRef]));
+        pg.node.set(getPDFLib().PDFName.of('Contents'), context.obj([headRef, tailRef]));
       } else if (typeof contents.asArray === 'function') {
         // PDFArray：内部数组操作
         const arr = contents.asArray();
@@ -77,7 +80,7 @@
         arr.push(tailRef);
       } else {
         // 单流 PDFStream：包成 [head, 原流, tail] 数组替换
-        pg.node.set(PDFLibRef.PDFName.of('Contents'), context.obj([headRef, contents, tailRef]));
+        pg.node.set(getPDFLib().PDFName.of('Contents'), context.obj([headRef, contents, tailRef]));
       }
     }
     return await src.save();
@@ -111,8 +114,8 @@
       if (bw <= 0 || bh <= 0) return;
       // MediaBox/CropBox 归一化到 [0,0,w,h]
       const box = context.obj([0, 0, bw, bh]);
-      pg.node.set(PDFLibRef.PDFName.of('MediaBox'), box);
-      pg.node.set(PDFLibRef.PDFName.of('CropBox'), box);
+      pg.node.set(getPDFLib().PDFName.of('MediaBox'), box);
+      pg.node.set(getPDFLib().PDFName.of('CropBox'), box);
       // 内容流包裹：平移 (-bx,-by) 把原内容移到新原点（裁剪区之外的内容自然落到新 MediaBox 外被裁掉）
       const csHead = context.flateStream(
         "q\n1 0 0 1 " + (-bx) + " " + (-by) + " cm\n"
@@ -122,13 +125,13 @@
       const tailRef = context.register(csTail);
       const contents = pg.node.Contents();
       if (!contents) {
-        pg.node.set(PDFLibRef.PDFName.of('Contents'), context.obj([headRef, tailRef]));
+        pg.node.set(getPDFLib().PDFName.of('Contents'), context.obj([headRef, tailRef]));
       } else if (typeof contents.asArray === 'function') {
         const arr = contents.asArray();
         arr.unshift(headRef);
         arr.push(tailRef);
       } else {
-        pg.node.set(PDFLibRef.PDFName.of('Contents'), context.obj([headRef, contents, tailRef]));
+        pg.node.set(getPDFLib().PDFName.of('Contents'), context.obj([headRef, contents, tailRef]));
       }
     });
     return await src.save();
