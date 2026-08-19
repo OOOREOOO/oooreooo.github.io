@@ -3244,6 +3244,10 @@ function parseGaodeTrips(text, defaultDate, cells) {
         pname.textContent = cur ? '正在读取 ' + cur : `已完成 ${done}/${total}`;
         if (mb != null) pname.textContent += ` · ${mb}MB`;
       };
+      const setStage = (stage, name, mb) => {
+        pname.textContent = `${stage} ${name}`;
+        if (mb != null) pname.textContent += ` · ${mb}MB`;
+      };
       prog.classList.add('show');
       document.body.classList.add('prog-open');
       setProg('');
@@ -3266,6 +3270,7 @@ function parseGaodeTrips(text, defaultDate, cells) {
             pname.textContent = `正在读取 ${f.name} · ${mb}MB`;
           });
           readBytesTotal += f.size || 0;
+          setStage('正在识别', f.name);
           const hash = await hashBytes(bytes);
           const duplicate = files.find(x => x.hash === hash);
           if (duplicate) {
