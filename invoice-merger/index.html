@@ -382,7 +382,7 @@ window.scrollTo(0, 0);
     text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;
   }
 
-  .list-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .list-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
   .list-head h3 { margin: 0; font-size: 16px; font-family: var(--font-display); letter-spacing: 1px; }
   .list-head .count { color: var(--ink-2); font-size: 13px; }
 
@@ -523,12 +523,12 @@ window.scrollTo(0, 0);
   .toast {
     position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%) translateY(20px);
     background: #2D2D2D; color: #F5F5F5; padding: 10px 24px; border-radius: 9999px;
-    font-size: 14px; line-height: 1.45; text-align: center; white-space: nowrap;
+    font-size: 14px; line-height: 1.45; text-align: center; white-space: pre-line;
     max-width: calc(100vw - 32px);
     opacity: 0; pointer-events: none; transition: all .3s ease; z-index: 50;
     box-shadow: none; backdrop-filter: none;
   }
-  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.show { opacity: .5; transform: translateX(-50%) translateY(0); }
 
   @media (max-width: 640px) {
     header.app h1 { font-size: 24px; }
@@ -1649,7 +1649,7 @@ header.app h1 { margin: 0; }
 }
 
 </style>
-<style>/* ===== V3 覆盖层·补丁 4：拖放区比例对齐 ===== */ .drop { padding: 50px 28px; } .drop .icon { margin-bottom: 16px; }</style>
+<style>/* ===== V3 覆盖层·补丁 4：拖放区合并为一个外框 ===== */ .drop { padding: 50px 28px; } .drop .icon { margin-bottom: 16px; } #dropCard { width: 70%; max-width: 760px; margin-left: auto; margin-right: auto; box-sizing: border-box; } #dropCard .drop { width: auto; max-width: none; margin: 0; border: 0 !important; background: transparent !important; box-shadow: none !important; border-radius: 0 !important; } #dropCard .drop:hover { transform: none; background: transparent !important; } #dropCard .drop.drag { background: transparent !important; transform: none; }</style>
 <style>
 /* ===== V3 覆盖层·补丁 5：宽度扩宽 + 双栏比例对齐原设计（左窄右宽） ===== */ .wrap { max-width: 1280px; } @media (min-width: 641px) { .wrap > .stack-col { grid-template-columns: 2fr 3fr; gap: 24px; } }
 </style>
@@ -1699,7 +1699,7 @@ body {
 .v3-stepper .step.current { color: #1f2937; font-weight: 600; }
 .v3-stepper .step.current .dot { background: var(--print); border-color: var(--print); color: #fff; }
 .v3-stepper .step-line { width: 30px; height: 1.5px; background: #e5e7eb; }
-/* 左栏：票据分类标题 + 描述（HTML 注入）+ 分类行间距 */
+/* 左栏：票据分类标题 + 分类行间距 */
 .list-head h3 { font-size: 18px; font-weight: 600; letter-spacing: 0; }
 .v3-cat-desc { font-size: 12.5px; color: #6b7280; margin-top: 4px; }
 .list-section { border: none; border-radius: 10px; background: transparent; }
@@ -2353,6 +2353,7 @@ if(document.body){
         <span class="hs-text" id="headStampText">OREO'S WORKSTATION</span>
       </div>
     </header>
+
 <!-- V3 步骤栏（视觉导航，移植自 V3 发票归档总站：3 步不含上传；点击滚动到对应区块，不改变原功能） -->
 
 
@@ -2422,7 +2423,7 @@ if(document.body){
       <!-- 文件信息 -->
       <div class="glass card hidden" id="fileInfoCard">
         <div class="list-head">
-          <div><h3>票据分类</h3><p class="v3-cat-desc">已按类型自动归类，点击展开查看明细</p></div>
+          <div><h3>票据分类</h3></div>
           <span class="count" id="count">0 个 PDF</span>
         </div>
         <div class="file-list" id="list">
@@ -2491,6 +2492,8 @@ if(document.body){
     })();
 
     let files = [];
+    let ignoredFiles = [];
+    let duplicateFiles = [];
     let uploadFolderName = ''; // 上传文件夹名（选择文件夹时记录，用于合并 PDF 命名）          // { id, name, bytes, w, h, pages, train, text, content, analyzeError, include, error }
     const trainOverride = {}; // name -> bool（用户手动修正）
     const thumbCache = {};    // id -> dataURL（发票缩略图缓存）
@@ -2537,13 +2540,13 @@ if(document.body){
 
       // 3) 网约车 / 出租车（滴滴、T3、曹操、高德打车等出行平台；提到机票的也先归到网约车，因为滴滴企业差旅发票中常含"代订机票"等关键词）
       //   必须先于机票判断：滴滴差旅电子发票可能含"代订机票"字样，放后面会被误判为航空
-      if (/网约车|滴滴|花小猪|曹操出行|t3出行|如祺出行|首汽约车|哈啰出行|高德打车|美团打车|出租车|打的|的士|打车|taxi|uber|didi|出行服务/.test(t + lower)) return 'ridehail';
+      if (/网约车|滴滴|花小猪|曹操出行|t3出行|如祺出行|首汽约车|哈啰出行|高德打车|美团打车|出租车|打的|的士|打车|taxi|uber|didi|出行服务|乘车|旅客运输|长途汽车|客运/.test(t + lower)) return 'ridehail';
 
       // 4) 机票（航空客票 / 登机牌 / 机票购买发票）。网约车已先排过，本步只判纯航空场景。
       if (/机票|航空运输电子客票|航空客票|登机牌|boarding\s*pass|航班|承运人|airline|flight|航程|起飞|到达|机建|燃油附加/.test(t + lower)) return 'flight';
 
-      // 5) 公共交通（地铁 / 公交 / 轨道交通）
-      if (/公共交通|地铁|公交|轨道交通|有轨电车|轮渡|摆渡|transit|metro|subway|bus|citytransport/.test(t + lower)) return 'transit';
+      // 5) 公共交通（地铁 / 公交 / 轨道交通 / 交通卡充值等）
+      if (/公共交通|交通卡|地铁|公交|轨道交通|有轨电车|轮渡|摆渡|transit|metro|subway|bus|citytransport/.test(t + lower)) return 'transit';
 
       // 6) 通用行程单（此时已排除网约车/交通类，出现的"行程单"多为报销凭证），即使不是发票也要识别
       if (/行程单|行程信息|报销凭证|journey/.test(t + lower)) return 'itinerary';
@@ -2691,12 +2694,12 @@ if(document.body){
     const listEl = $('#list');
     const emptyEl = $('#empty');
 
-    function toast(msg) {
+  function toast(msg, isError, duration) {
       const t = $('#toast');
       t.textContent = msg;
       t.classList.add('show');
       clearTimeout(t._t);
-      t._t = setTimeout(() => t.classList.remove('show'), 2200);
+      t._t = setTimeout(() => t.classList.remove('show'), duration || 1100);
     }
 
     // v20：内嵌常用 CMap（base64），file:// 双击打开或 cmaps 目录缺失时文字提取仍可用。
@@ -2941,7 +2944,7 @@ function parseGaodeTripsRegex(text, defaultDate) {
   if (!text) return out;
   var flat = text.replace(/[\r\n]+/g, ' ').replace(/[ \t\u3000]+/g, ' ').trim();
   // 高德行：序号 + 服务商名 + 车型 + 日期时间 + 城市 + 起终点 + 金额元
-  var tripRe = /(\d{1,3})\s+(\S+?(?:快车|专车|拼车|优享|出租车|特惠|舒适|商务|接送))\s+(\d{4}[-/.]\d{1,2}[-/.]\d{1,2}\s*\d{1,2}:\d{2})\s+([\u4e00-\u9fa5]{2,4}市?)\s+(.+?)\s+(\d+(?:\.\d{1,2})?)元/g;
+  var tripRe = /(\d{1,3})\s+(\S+?(?:快车|专车|拼车|优享|出租车|特惠|舒适|商务|接送|经济型|经济|标准型|豪华型|商务型))\s+(\d{4}[-/.]\d{1,2}[-/.]\d{1,2}\s*\d{1,2}:\d{2})\s+([\u4e00-\u9fa5]{2,4}市?)\s+(.+?)\s+(\d+(?:\.\d{1,2})?)元/g;
   var m;
   while ((m = tripRe.exec(flat))) {
     var from = '', to = '';
@@ -3206,8 +3209,24 @@ function parseGaodeTrips(text, defaultDate, cells) {
       });
     }
 
+    async function hashBytes(bytes) {
+      try {
+        if (window.crypto && window.crypto.subtle) {
+          const digest = await window.crypto.subtle.digest('SHA-256', bytes);
+          return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('');
+        }
+      } catch (e) { /* 非安全上下文时退回轻量签名 */ }
+      const step = Math.max(1, Math.floor(bytes.length / 16));
+      let sample = '';
+      for (let i = 0; i < bytes.length; i += step) sample += bytes[i].toString(16);
+      return bytes.length + ':' + sample;
+    }
+
     async function ingest(FileListLike, source) {
-      const arr = Array.from(FileListLike).filter(f => /\.pdf$/i.test(f.name));
+      const allArr = Array.from(FileListLike);
+      const arr = allArr.filter(f => /\.pdf$/i.test(f.name));
+      const ignoredNow = allArr.filter(f => !/\.pdf$/i.test(f.name)).map(f => f.name);
+      if (ignoredNow.length) ignoredFiles = ignoredFiles.concat(ignoredNow);
       if (arr.length === 0) { toast('文件夹内没有 PDF（图片等非 PDF 文件已忽略）'); return; }
       $('#generate').disabled = true;
       $('#drop').classList.add('busy');
@@ -3231,7 +3250,10 @@ function parseGaodeTrips(text, defaultDate, cells) {
       // 新增计数：循环前 files 长度
       const beforeLen = files.length;
       for (const f of arr) {
-        if (files.some(x => x.name === f.name)) { done++; readBytesTotal += f.size || 0; setProg(f.name); continue; } // 同名跳过
+        if (files.some(x => x.name === f.name)) {
+          duplicateFiles.push({ name: f.name, original: f.name, reason: '同名文件已存在' });
+          done++; readBytesTotal += f.size || 0; setProg(f.name); continue;
+        }
         setProg(f.name);
         try {
           // 读取阶段：按文件字节实时更新整体进度
@@ -3244,6 +3266,14 @@ function parseGaodeTrips(text, defaultDate, cells) {
             pname.textContent = `正在读取 ${f.name} · ${mb}MB`;
           });
           readBytesTotal += f.size || 0;
+          const hash = await hashBytes(bytes);
+          const duplicate = files.find(x => x.hash === hash);
+          if (duplicate) {
+            duplicateFiles.push({ name: f.name, original: duplicate.name, reason: '内容与已导入文件相同' });
+            done++;
+            setProg(f.name);
+            continue;
+          }
           let w = 0, h = 0, pages = 0, text = '', content = null, analyzeError = '';
           try {
             const doc = await PDFDocument.load(bytes, { ignoreEncryption: true });
@@ -3287,15 +3317,29 @@ function parseGaodeTrips(text, defaultDate, cells) {
           // v95：ridehail 不再被强制改回——网约车平台电子发票（滴滴出行等，含税务二维码）
           // 是出行服务发票，应保留在「公共交通与网约车发票」分区
           if (qrInvoice && /发票|增值税|电子发票|价税合计|普通发票|专用发票/.test(text) &&
-              (finalType === 'other' || finalType === 'transit')) {
+              finalType === 'other') {
             finalType = 'invoice';
           }
           const finalAmount = (qrAmount != null) ? qrAmount : amt.amount;
           const date = extractDate(text, f.name);
           // 行程单解析多条行程明细（网约车时间线用）；高德格式需要 item 级坐标切分
           const trips = (finalType === 'itinerary') ? parseTrips(text, date, ana.cells) : [];
+          const contentSignature = [
+            pages,
+            Math.round(w * 10) / 10,
+            Math.round(h * 10) / 10,
+            (text || '').replace(/\s+/g, '').slice(0, 1200),
+            qrRaw || ''
+          ].join('|');
+          const duplicateByContent = files.find(x => x.contentSignature === contentSignature && x.name !== f.name);
+          if (duplicateByContent) {
+            duplicateFiles.push({ name: f.name, original: duplicateByContent.name, reason: '内容与已导入文件相同' });
+            done++;
+            setProg(f.name);
+            continue;
+          }
           const rec = {
-            id: ++idSeq, name: f.name, bytes, w, h, pages, text, content, analyzeError,
+            id: ++idSeq, name: f.name, bytes, hash, contentSignature, w, h, pages, text, content, analyzeError,
             train,
             date,
             trips,                                    // 多条行程明细（网约车时间线渲染用）
@@ -3333,7 +3377,8 @@ function parseGaodeTrips(text, defaultDate, cells) {
       // 导入成功后：新增文件数 > 0 → 隐藏拖入卡片，显示时间线/文件信息/fabbar
       const newCount = files.length - beforeLen;
       if (newCount > 0) {
-        toast(`已导入 ${newCount} 张发票`);
+        const ignoredText = ignoredFiles.length ? `忽略非PDF：${ignoredFiles.join('、')}` : '没有非PDF文件被忽略';
+        toast(`已导入 ${files.length} 个 PDF\n重复跳过 ${duplicateFiles.length} 个\n${ignoredText}`, false, 3250);
         // v9：上传后自动隐藏拖入卡（继续添加可用窗口拖放；清空后恢复）——带淡出上滑动画
         const _dropCard = $('#dropCard');
         const _header = document.querySelector('header.app');
@@ -3519,10 +3564,8 @@ function parseGaodeTrips(text, defaultDate, cells) {
           <div class="meta">${list.length} 个${sumStr ? ' · ' + sumStr : ''}<span class="caret">${ICON_CHEVRON}</span></div>
         `;
         head.addEventListener('click', () => {
-        const wasCollapsed = wrap.classList.contains('collapsed');
-        document.querySelectorAll('.list-section').forEach(s => s.classList.add('collapsed'));
-        if (wasCollapsed) wrap.classList.remove('collapsed');
-      });
+          wrap.classList.toggle('collapsed');
+        });
         const body = document.createElement('div');
         body.className = 'list-section-body file-grid';  // v83：行式 → 卡片网格横向排布
         if (sec.key === 'public') {
@@ -3623,8 +3666,10 @@ function parseGaodeTrips(text, defaultDate, cells) {
     // ---- 网约车时间线：仅识别行程单，按行程明细逐行展示 ----
     // 行程列：起点 / 终点 合并，中间以 → 连接（无终点只显示起点）
     function routeCell(t) {
-      const from = escapeHtml(t.from || '-');
-      const to = escapeHtml(t.to || '');
+      const fRaw = (t.from || '-').replace(/\s+/g, '');
+      const tRaw = (t.to || '').replace(/\s+/g, '');
+      const from = escapeHtml(fRaw);
+      const to = escapeHtml(tRaw);
       if (!to || to === '-') return `<span class="route"><span class="route-fa">${from}</span></span>`;
       return `<span class="route"><span class="route-fa">${from} → </span><span class="route-to">${to}</span></span>`;
     }
@@ -3673,37 +3718,42 @@ function parseGaodeTrips(text, defaultDate, cells) {
         const ta = (a.time || '').split(' ').pop() || '', tb = (b.time || '').split(' ').pop() || '';
         return da.localeCompare(db) || ta.localeCompare(tb);
       });
-      let prevDate = '';
-      const rows = allTrips.map((t, i) => {
+      const groups = [];
+      allTrips.forEach((t) => {
         const d = t.date || '-';
-        const same = d === prevDate;
-        prevDate = d;
-        const dateRow = same ? '' : '<tr class="tl-date-row" data-day="' + escapeHtml(d) + '"><td colspan="3" class="tl-date-cell"><span class="tl-caret">\u25BE</span>' + escapeHtml(d) + '</td></tr>';
-        return dateRow + `
-        <tr class="tl-trip" data-day="${d}">
-          <td class="tl-clock">${escapeHtml(((t.time||'').split(' ').pop()) || '-')}</td>
-          <td class="route">${routeCell(t)}</td>
-          <td class="tl-amt">${t.amount != null ? t.amount.toFixed(2) : '-'}</td>
-        </tr>
-      `;
-      }).join('');
-      timelineEl.innerHTML = `
-        <table class="tl-table">
-          <colgroup>
-            <col class="c-clock">
-            <col class="c-route">
-            <col class="c-amt">
-          </colgroup>
-          <thead>
-            <tr>
-              <th>时刻</th>
-              <th>行程</th>
-              <th>金额</th>
-            </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
-      `;
+        const last = groups[groups.length - 1];
+        if (!last || last.date !== d) groups.push({ date: d, trips: [t] });
+        else last.trips.push(t);
+      });
+
+      function weekdayLabel(dateStr) {
+        if (!dateStr || dateStr === '-') return '';
+        const full = dateStr.length >= 10 ? dateStr : new Date().getFullYear() + '-' + dateStr;
+        const d = new Date(full);
+        if (isNaN(d.getTime())) return '';
+        return ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][d.getDay()];
+      }
+
+      timelineEl.innerHTML = `<div class="tl-timeline-new">${groups.map((g) => {
+        const displayDate = (g.date || '-').length >= 10 ? g.date.slice(5) : g.date || '-';
+        const cards = g.trips.map((t) => `
+          <div class="tl-trip-card" data-day="${escapeHtml(g.date)}">
+            <div class="tl-trip-time">${escapeHtml(((t.time || '').split(' ').pop()) || '-')}</div>
+            <div class="tl-trip-route">${routeCell(t)}</div>
+            <div class="tl-trip-amount">${t.amount != null ? '¥' + t.amount.toFixed(2) : '-'}</div>
+          </div>
+        `).join('');
+        return `
+          <div class="tl-day-group" data-day="${escapeHtml(g.date)}">
+            <div class="tl-day-meta">
+              <div class="tl-day-date">${escapeHtml(displayDate)}</div>
+              <div class="tl-day-week">${escapeHtml(weekdayLabel(g.date))}</div>
+              <div class="tl-axis"><span class="tl-axis-node"></span></div>
+            </div>
+            <div class="tl-day-cards">${cards}</div>
+          </div>
+        `;
+      }).join('')}</div>`;
       const tripSum = allTrips.reduce((s, t) => s + (t.amount || 0), 0);
       countEl.textContent = `共 ${allTrips.length} 笔 · 小计 ¥${tripSum.toFixed(2)}`;
     }
@@ -4253,6 +4303,189 @@ body.prog-open #dropCard, body.prog-open .card {
 .tl-table tr.tl-trip.hidden-row { display: none; }
 .tl-table tr.tl-date-row:hover td { background: rgba(30,94,255,.04); }
 </style>
+<style>
+/* ===== 票据分类与网约车时间线宽度扩充 20% ===== */
+.wrap { max-width: 1536px !important; }
+.wrap > .stack-col { grid-template-columns: 1fr 1fr !important; gap: 26px !important; }
+</style>
+<style>
+/* ===== 读取时显示 PDF 全称（去除省略号截断） ===== */
+.prog .prog-info .name {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  max-width: none !important;
+  word-break: break-all !important;
+  line-height: 1.5 !important;
+}
+</style>
+<style>
+/* ===== 票据分类栏缩短 20% + 网约车时间线复刻 ===== */
+.wrap > .stack-col {
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr) !important;
+  gap: 22px !important;
+}
+
+#timelineCard .timeline {
+  padding: 10px 14px 14px !important;
+  overflow: visible !important;
+  max-height: none !important;
+}
+
+.tl-timeline-new {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.tl-day-group {
+  position: relative;
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.tl-day-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding-top: 1px;
+}
+
+.tl-day-date {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1F1F1F;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+.tl-day-week {
+  font-size: 12px;
+  font-weight: 400;
+  color: #8C8C8C;
+}
+
+.tl-axis {
+  position: absolute;
+  top: 6px;
+  left: 64px;
+  width: 2px;
+  bottom: -24px;
+  height: auto;
+  background: #E6ECF7;
+  border-radius: 2px;
+}
+
+.tl-day-group:last-child .tl-axis {
+  display: none;
+}
+
+.tl-axis-node {
+  position: absolute;
+  top: 0;
+  left: -4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #2F54EB;
+  box-shadow: 0 0 0 3px rgba(47, 84, 235, .12);
+}
+
+.tl-day-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow: hidden;
+  border-radius: 5px;
+  background: #F5F8FF;
+}
+
+.tl-trip-card {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 46px;
+  padding: 10px 12px;
+  border-radius: 0;
+  background: transparent;
+  border-bottom: 1px solid rgba(47, 84, 235, .08);
+}
+
+.tl-trip-card:last-child {
+  border-bottom: none;
+}
+
+.tl-trip-time {
+  font-size: 13px;
+  font-weight: 700;
+  color: #2F54EB;
+  font-variant-numeric: tabular-nums;
+}
+
+.tl-trip-route {
+  min-width: 0;
+  font-size: 12.5px;
+  font-weight: 400;
+  color: #374151;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.tl-trip-route .route {
+  display: inline;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.tl-trip-route .route-fa,
+.tl-trip-route .route-to,
+.tl-trip-route .route-arrow {
+  display: inline;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.tl-trip-route .route-arrow {
+  color: #8C8C8C;
+  margin: 0 2px;
+}
+
+.tl-trip-amount {
+  text-align: right;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1F1F1F;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .wrap > .stack-col {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .tl-day-group {
+    grid-template-columns: 58px minmax(0, 1fr);
+    gap: 10px;
+  }
+  .tl-axis {
+    left: 51px;
+  }
+  .tl-trip-card {
+    grid-template-columns: 42px minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 9px 10px;
+  }
+}
+</style>
+
+
 
 
 
@@ -4324,4 +4557,3 @@ body.prog-open #dropCard, body.prog-open .card {
 </script>
 </body>
 </html>
-
