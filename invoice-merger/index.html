@@ -103,6 +103,8 @@ window.scrollTo(0, 0);
 <body>
 <script>
 (function(){
+  // 已停用右上角资源加载提示；页面组件预加载改由主脚本负责。
+  return;
 var TOTAL=5;
 var bar,pct,wrap,timer;
 var _pbStart=Date.now();
@@ -408,6 +410,28 @@ if(document.body){
         if (!window.JSZip) throw new Error('压缩打包库加载失败');
         return window.JSZip;
       });
+    }
+
+    let componentReadyPromise = null;
+    function prepareComponents() {
+      if (componentReadyPromise) return componentReadyPromise;
+      const prog = document.getElementById('prog');
+      const pct = document.getElementById('progPct');
+      const pname = document.getElementById('progName');
+      if (prog) prog.classList.add('show');
+      if (pname) pname.textContent = '正在配置PDF相关组件（首次较慢，请稍等）';
+      if (pct) pct.textContent = '0%';
+      componentReadyPromise = Promise.all([ensurePdfLib(), ensureJsQR()])
+        .then(() => warmPdfPipeline())
+        .then(() => {
+          if (prog && !document.body.classList.contains('prog-open')) prog.classList.remove('show');
+        })
+        .catch((e) => {
+          if (prog && !document.body.classList.contains('prog-open')) prog.classList.remove('show');
+          toast('配置组件失败：' + (e && e.message || e), true);
+          throw e;
+        });
+      return componentReadyPromise;
     }
 
     // 火车票识别默认关键词（设置面板已去除，使用内置关键词）
@@ -1159,16 +1183,15 @@ function parseGaodeTrips(text, defaultDate, cells) {
         if (mb != null) pname.textContent += ` · ${mb}MB`;
       };
       const setStage = (stage, name, mb) => {
-        pname.textContent = `${stage} ${name}`;
+        pname.textContent = name ? `${stage} ${name}` : stage;
         if (mb != null) pname.textContent += ` · ${mb}MB`;
       };
       prog.classList.add('show');
       document.body.classList.add('prog-open');
       setProg('');
-      setStage('正在加载识别组件', 'PDF / 二维码');
+      setStage('正在配置PDF相关组件（首次较慢，请稍等）', '');
       try {
-        await Promise.all([ensurePdfLib(), ensureJsQR()]);
-        await warmPdfPipeline();
+        await prepareComponents();
       } catch (e) {
         toast('识别组件加载失败：' + (e && e.message || e), true);
         prog.classList.remove('show');
@@ -1820,6 +1843,7 @@ function parseGaodeTrips(text, defaultDate, cells) {
 
     updateGenerateBtn();
     updateTimeline();
+    prepareComponents().catch(() => {});
   </script>
 <script src="../weather-bg.js?v=77"></script>
 
